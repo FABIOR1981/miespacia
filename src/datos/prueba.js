@@ -12,7 +12,7 @@ const CLAVE_DE_PRUEBA = 'PruebaPro-2026';
 const PROFESIONALES = [
   { email: 'ana@miespacia.test', nombre: 'Ana Pérez', clientes: ['Marcelo Rey', 'Lucía Batlle', 'Sofía Núñez', 'Diego Acosta', 'Valentina Silva'] },
   { email: 'luis@miespacia.test', usuario: 'luisg', nombre: 'Luis Gómez', clave: '300415RFc', clientes: ['Federico Ruiz', 'Carolina Vidal', 'Martín Olivera', 'Julia Pereira'] },
-  { usuario: 'ritam', nombre: 'Rita Morales', clave: '300415RFc', clientes: ['Pablo Gil', 'Elena Ríos', 'Tomás Sosa'] },
+  { usuario: 'ritam', nombre: 'Rita Morales', clave: '300415RFc', etiqueta: 'paciente', horario: { desde: '08:00', hasta: '22:00' }, clientes: ['Pablo Gil', 'Elena Ríos', 'Tomás Sosa'] },
 ];
 
 async function sembrarDatosDePrueba(persistencia, agenda) {
@@ -22,6 +22,8 @@ async function sembrarDatosDePrueba(persistencia, agenda) {
     const cuenta = await persistencia.profesionales.crear({
       email: datos.email, usuario: datos.usuario ?? datos.email.split('@')[0], nombre: datos.nombre, rol: 'profesional', claveHash, requiereCambioClave: false,
     });
+    if (datos.etiqueta) await agenda.cambiarEtiquetaClientes(cuenta.id, datos.etiqueta);
+    if (datos.horario) await agenda.cambiarHorario(cuenta.id, datos.horario.desde, datos.horario.hasta);
     const clientes = [];
     for (const [i, nombre] of datos.clientes.entries()) {
       clientes.push(await agenda.crearCliente(cuenta.id, { nombre, telefono: '099' + String(i + 1).padStart(6, '0') }));
