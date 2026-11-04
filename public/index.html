@@ -8,15 +8,15 @@
   <link rel="stylesheet" href="estilos/paletas.css">
   <style>
     body { background: var(--bruma); margin: 0; }
-    .barra { position: sticky; top: 0; z-index: 20; background: var(--barra-fondo); color: var(--sobre-tinta); height: var(--alto-barra); display: flex; align-items: center; padding: 0 16px; font-weight: 700; color: #fff; }
+    .barra { position: sticky; top: 0; z-index: 20; background: var(--barra-fondo); height: var(--alto-barra); display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 16px; color: #fff; font-weight: 700; }
+    .barra .usuario { font-weight: 500; font-size: .9rem; color: var(--sobre-tinta); }
+    .barra button { background: transparent; border: 1px solid var(--sobre-tinta-tenue); color: #fff; border-radius: var(--radio-boton); padding: 6px 12px; }
     .contenido { max-width: 960px; margin: 0 auto; padding: 16px 16px 48px; display: grid; gap: 14px; }
-
     .cabecera-dia { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
     .fecha-actual { font-size: clamp(1.3rem, 3vw, 1.8rem); font-weight: 700; color: var(--tinta); }
     .fecha-actual small { display: block; font-size: .95rem; font-weight: 500; color: var(--tinta-suave); }
     .nav-fecha { display: flex; gap: 6px; }
     .nav-fecha .boton { background: var(--papel); border: 1.5px solid var(--linea-fuerte); min-height: 40px; }
-
     .tira-dias { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
     .tira-dias::-webkit-scrollbar { display: none; }
     .dia { flex: 1 1 0; min-width: 52px; display: grid; justify-items: center; padding: 8px 6px; background: var(--papel); border: 1.5px solid var(--linea); border-radius: 12px; font: inherit; color: var(--tinta); }
@@ -24,7 +24,6 @@
     .dia-numero { font-size: 1.15rem; font-weight: 650; }
     .dia[aria-pressed="true"] { background: var(--activo-fondo); border-color: var(--activo-fondo); color: #fff; }
     .dia[aria-pressed="true"] .dia-nombre { color: var(--sobre-tinta); }
-
     .grilla { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio-tarjeta); overflow: hidden; }
     .fila-hora { display: grid; grid-template-columns: 64px 1fr; border-bottom: 1px solid var(--linea); min-height: 52px; }
     .fila-hora:last-child { border-bottom: 0; }
@@ -34,69 +33,116 @@
     .libre:hover { border-color: var(--pino); color: var(--pino-oscuro); }
     .reserva { flex: 1; display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--pino-claro); border-left: 4px solid var(--pino); border-radius: 10px; padding: 8px 12px; color: var(--tinta); }
     .reserva.cancelada { background: var(--bruma); border-left-color: var(--linea-fuerte); color: var(--tinta-suave); text-decoration: line-through; }
-
     .panel { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio-tarjeta); padding: 16px; display: grid; gap: 10px; }
     .panel h2 { margin: 0; font-size: 1.05rem; color: var(--tinta); }
     .fila { display: flex; flex-wrap: wrap; gap: 8px; }
     .fila input, .fila select { flex: 1 1 160px; min-height: 42px; padding: 0 12px; border: 1.5px solid var(--linea-fuerte); border-radius: var(--radio-campo); background: var(--papel); }
     .aviso { color: var(--error-texto); background: var(--peligro-claro); border-radius: var(--radio-campo); padding: 10px 12px; }
     .aviso:empty { display: none; }
-    .lista-clientes { list-style: none; margin: 0; padding: 0; }
-    .lista-clientes li { padding: 8px 0; border-bottom: 1px solid var(--linea); }
+    .aviso-ok { color: var(--tinta); background: var(--pino-claro); border-radius: var(--radio-campo); padding: 10px 12px; }
+    .aviso-ok:empty { display: none; }
+    .lista { list-style: none; margin: 0; padding: 0; }
+    .lista li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--linea); flex-wrap: wrap; }
     .detalle { color: var(--tinta-suave); font-size: .9rem; }
+    .inactivo { color: var(--tinta-suave); text-decoration: line-through; }
+    .selector { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .selector select { min-height: 42px; padding: 0 12px; border: 1.5px solid var(--linea-fuerte); border-radius: var(--radio-campo); background: var(--papel); }
   </style>
 </head>
 <body>
-  <header class="barra">miEspacia</header>
+  <header class="barra">
+    <span>miEspacia</span>
+    <span class="usuario" id="usuario"></span>
+    <button id="salir" hidden>Salir</button>
+  </header>
 
   <main class="contenido">
     <p class="aviso" id="aviso" role="alert"></p>
 
-    <div class="cabecera-dia">
-      <div class="fecha-actual" id="fecha-actual"></div>
-      <div class="nav-fecha">
-        <button class="boton" id="ir-ayer" aria-label="Día anterior">←</button>
-        <button class="boton" id="ir-hoy">Hoy</button>
-        <button class="boton" id="ir-manana" aria-label="Día siguiente">→</button>
+    <section class="panel" id="panel-ingreso" hidden>
+      <h2>Ingresar</h2>
+      <form id="form-ingreso" class="fila">
+        <input type="email" name="email" placeholder="Email" required autocomplete="username">
+        <input type="password" name="clave" placeholder="Clave" required autocomplete="current-password">
+        <button class="boton boton-primario">Ingresar</button>
+      </form>
+    </section>
+
+    <section class="panel" id="panel-clave" hidden>
+      <h2>Cambiá tu clave para continuar</h2>
+      <p class="detalle">La clave que te dieron es temporal. Elegí una propia de al menos 8 caracteres.</p>
+      <form id="form-clave" class="fila">
+        <input type="password" name="actual" placeholder="Clave actual" required autocomplete="current-password">
+        <input type="password" name="nueva" placeholder="Clave nueva" required minlength="8" autocomplete="new-password">
+        <button class="boton boton-primario">Cambiar clave</button>
+      </form>
+    </section>
+
+    <div id="app" hidden>
+      <section class="panel" id="selector-agenda" hidden>
+        <div class="selector">
+          <label for="select-profesional">Agenda de:</label>
+          <select id="select-profesional"></select>
+        </div>
+      </section>
+
+      <div class="cabecera-dia">
+        <div class="fecha-actual" id="fecha-actual"></div>
+        <div class="nav-fecha">
+          <button class="boton" id="ir-ayer" aria-label="Día anterior">←</button>
+          <button class="boton" id="ir-hoy">Hoy</button>
+          <button class="boton" id="ir-manana" aria-label="Día siguiente">→</button>
+        </div>
       </div>
+
+      <div class="tira-dias" id="tira-dias" role="group" aria-label="Días"></div>
+      <section class="grilla" id="grilla" aria-label="Horarios del día"></section>
+
+      <section class="panel" id="panel-reserva" hidden>
+        <h2 id="titulo-reserva"></h2>
+        <form id="form-reserva" class="fila">
+          <select name="clienteId" id="select-cliente" required></select>
+          <button class="boton boton-primario">Reservar</button>
+          <button type="button" class="boton boton-secundario" id="cerrar-reserva">Cerrar</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>Clientes</h2>
+        <form id="form-cliente" class="fila">
+          <input name="nombre" placeholder="Nombre" required>
+          <input name="telefono" placeholder="Teléfono">
+          <input name="notas" placeholder="Notas">
+          <button class="boton boton-primario">Agregar</button>
+        </form>
+        <ul class="lista" id="lista-clientes"></ul>
+      </section>
+
+      <section class="panel" id="panel-admin" hidden>
+        <h2>Profesionales</h2>
+        <form id="form-profesional" class="fila">
+          <input name="nombre" placeholder="Nombre" required>
+          <input name="email" type="email" placeholder="Email" required>
+          <button class="boton boton-primario">Dar de alta</button>
+        </form>
+        <p class="aviso-ok" id="clave-temporal"></p>
+        <ul class="lista" id="lista-profesionales"></ul>
+      </section>
     </div>
-
-    <div class="tira-dias" id="tira-dias" role="group" aria-label="Días"></div>
-
-    <section class="grilla" id="grilla" aria-label="Horarios del día"></section>
-
-    <section class="panel" id="panel-reserva" hidden>
-      <h2 id="titulo-reserva"></h2>
-      <form id="form-reserva" class="fila">
-        <select name="clienteId" id="select-cliente" required></select>
-        <button class="boton boton-primario">Reservar</button>
-        <button type="button" class="boton boton-secundario" id="cerrar-reserva">Cerrar</button>
-      </form>
-    </section>
-
-    <section class="panel">
-      <h2>Clientes</h2>
-      <form id="form-cliente" class="fila">
-        <input name="nombre" placeholder="Nombre" required>
-        <input name="telefono" placeholder="Teléfono">
-        <input name="notas" placeholder="Notas">
-        <button class="boton boton-primario">Agregar</button>
-      </form>
-      <ul class="lista-clientes" id="lista-clientes"></ul>
-    </section>
   </main>
 
 <script>
-  const HORAS = Array.from({ length: 12 }, (_, i) => String(8 + i).padStart(2, '0') + ':00'); // 08:00 a 19:00
+  const $ = (id) => document.getElementById(id);
   const formato = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Montevideo', year: 'numeric', month: '2-digit', day: '2-digit' });
   const nombreDia = new Intl.DateTimeFormat('es-UY', { timeZone: 'UTC', weekday: 'short' });
   const titulo = new Intl.DateTimeFormat('es-UY', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' });
+  const HORAS = Array.from({ length: 12 }, (_, i) => String(8 + i).padStart(2, '0') + ':00');
 
+  let yo = null;
+  let profesionales = [];
+  let agendaDe = null; // null = mi agenda; el administrador puede elegir otra
   let diaSeleccionado = fechaDesplazada(0);
   let horaElegida = null;
-
-  const $ = (id) => document.getElementById(id);
-  const mostrarError = (msg) => { $('aviso').textContent = msg || ''; };
 
   function fechaDesplazada(n) { return formato.format(new Date(Date.now() + n * 86400000)); }
   function aDate(fecha) { return new Date(fecha + 'T12:00:00Z'); }
@@ -104,12 +150,86 @@
   function escapar(texto) {
     return String(texto).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
+  function mostrarError(msg) { $('aviso').textContent = msg || ''; }
 
   async function api(metodo, ruta, cuerpo) {
-    const r = await fetch(ruta, { method: metodo, headers: { 'Content-Type': 'application/json' }, body: cuerpo ? JSON.stringify(cuerpo) : undefined });
-    const datos = await r.json();
-    if (!r.ok) throw new Error(datos.error || 'Error');
+    const r = await fetch(ruta, {
+      method: metodo,
+      headers: { 'Content-Type': 'application/json' },
+      body: cuerpo ? JSON.stringify(cuerpo) : undefined,
+      credentials: 'same-origin',
+    });
+    const datos = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const error = new Error(datos.error || 'Error');
+      error.estado = r.status;
+      throw error;
+    }
     return datos;
+  }
+
+  /** Agrega ?profesional=ID cuando el administrador mira la agenda de otro. */
+  function agendaUrl(base, extra = {}) {
+    const params = new URLSearchParams(extra);
+    if (agendaDe) params.set('profesional', agendaDe);
+    const q = params.toString();
+    return base + (q ? '?' + q : '');
+  }
+
+  function mostrar(pantalla) {
+    $('panel-ingreso').hidden = pantalla !== 'ingreso';
+    $('panel-clave').hidden = pantalla !== 'clave';
+    $('app').hidden = pantalla !== 'app';
+    $('salir').hidden = pantalla === 'ingreso';
+  }
+
+  async function arrancar() {
+    try {
+      yo = await api('GET', '/api/yo');
+    } catch (error) {
+      if (error.estado === 401 || error.estado === 403) {
+        mostrar('ingreso');
+        if (error.estado === 403) mostrarError(error.message);
+        return;
+      }
+      mostrarError(error.message);
+      return;
+    }
+    $('usuario').textContent = yo.nombre + (yo.rol === 'admin' ? ' · administrador' : '');
+    if (yo.requiereCambioClave) { mostrar('clave'); return; }
+
+    mostrar('app');
+    const esAdmin = yo.rol === 'admin';
+    $('selector-agenda').hidden = !esAdmin;
+    $('panel-admin').hidden = !esAdmin;
+    if (esAdmin) await cargarProfesionales();
+    await cargarClientes();
+    await refrescar();
+  }
+
+  async function cargarProfesionales() {
+    profesionales = await api('GET', '/api/profesionales');
+    const activos = profesionales.filter((p) => p.activo);
+    $('select-profesional').innerHTML =
+      `<option value="">Mi agenda</option>` +
+      activos.filter((p) => p.id !== yo.id).map((p) => `<option value="${p.id}" ${agendaDe === p.id ? 'selected' : ''}>${escapar(p.nombre)}</option>`).join('');
+    $('lista-profesionales').innerHTML = profesionales.map((p) => `
+      <li class="${p.activo ? '' : 'inactivo'}">
+        <span>${escapar(p.nombre)} <span class="detalle">${escapar(p.email)}${p.activo ? '' : ' · desactivado'}</span></span>
+        ${p.id !== yo.id && p.activo ? `
+          <span>
+            <button class="boton boton-secundario" data-reiniciar="${p.id}">Reiniciar clave</button>
+            <button class="boton boton-secundario" data-desactivar="${p.id}">Desactivar</button>
+          </span>` : ''}
+      </li>`).join('') || '<li class="detalle">Todavía no hay profesionales</li>';
+  }
+
+  async function cargarClientes() {
+    const clientes = await api('GET', agendaUrl('/api/clientes'));
+    $('lista-clientes').innerHTML = clientes.map((c) =>
+      `<li><span>${escapar(c.nombre)} <span class="detalle">${escapar(c.telefono || '')}</span></span></li>`).join('')
+      || '<li class="detalle">Todavía no hay clientes</li>';
+    $('select-cliente').innerHTML = clientes.map((c) => `<option value="${c.id}">${escapar(c.nombre)}</option>`).join('');
   }
 
   function dibujarTira() {
@@ -123,30 +243,18 @@
   }
 
   async function dibujarGrilla() {
-    const turnos = await api('GET', `/api/turnos?desde=${diaSeleccionado}&hasta=${diaSeleccionado}`);
-    const porHora = Object.fromEntries(turnos.filter((t) => !t.cancelado).map((t) => [t.hora, t]));
+    const turnos = await api('GET', agendaUrl('/api/turnos', { desde: diaSeleccionado, hasta: diaSeleccionado }));
+    const activos = Object.fromEntries(turnos.filter((t) => !t.cancelado).map((t) => [t.hora, t]));
     const cancelados = turnos.filter((t) => t.cancelado);
     $('grilla').innerHTML = HORAS.map((h) => {
-      const t = porHora[h];
+      const t = activos[h];
       const celda = t
         ? `<div class="reserva"><span><strong>${escapar(t.clienteNombre || '')}</strong></span>
              <button class="boton boton-secundario" data-cancelar="${t.id}">Cancelar</button></div>`
         : `<button class="libre" data-hora="${h}">Libre · reservar</button>`;
       return `<div class="fila-hora"><div class="hora">${h}</div><div class="celda">${celda}</div></div>`;
-    }).join('');
-    if (cancelados.length) {
-      $('grilla').innerHTML += cancelados.map((t) =>
-        `<div class="fila-hora"><div class="hora">${t.hora}</div><div class="celda"><div class="reserva cancelada">${escapar(t.clienteNombre || '')} (cancelado)</div></div></div>`).join('');
-    }
-  }
-
-  async function cargarClientes() {
-    const clientes = await api('GET', '/api/clientes');
-    $('lista-clientes').innerHTML = clientes.map((c) =>
-      `<li>${escapar(c.nombre)} <span class="detalle">${escapar(c.telefono || '')}</span></li>`).join('')
-      || '<li class="detalle">Todavía no hay clientes</li>';
-    $('select-cliente').innerHTML = clientes.map((c) => `<option value="${c.id}">${escapar(c.nombre)}</option>`).join('');
-    return clientes;
+    }).join('') + cancelados.map((t) =>
+      `<div class="fila-hora"><div class="hora">${t.hora}</div><div class="celda"><div class="reserva cancelada">${escapar(t.clienteNombre || '')} (cancelado)</div></div></div>`).join('');
   }
 
   async function refrescar() {
@@ -161,14 +269,53 @@
     $('select-cliente').focus();
   }
 
-  $('tira-dias').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-dia]');
-    if (!b) return;
-    diaSeleccionado = b.dataset.dia;
+  function irA(dia) {
+    diaSeleccionado = dia;
     $('panel-reserva').hidden = true;
     mostrarError();
     refrescar().catch((err) => mostrarError(err.message));
+  }
+
+  // Ingreso, cambio de clave y salida
+  $('form-ingreso').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    mostrarError();
+    try {
+      await api('POST', '/api/ingresar', Object.fromEntries(new FormData(e.target)));
+      e.target.reset();
+      await arrancar();
+    } catch (err) { mostrarError(err.message); }
   });
+
+  $('form-clave').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    mostrarError();
+    try {
+      await api('POST', '/api/clave', Object.fromEntries(new FormData(e.target)));
+      e.target.reset();
+      await arrancar();
+    } catch (err) { mostrarError(err.message); }
+  });
+
+  $('salir').addEventListener('click', async () => {
+    await api('POST', '/api/salir').catch(() => {});
+    location.reload();
+  });
+
+  // Agenda
+  $('select-profesional').addEventListener('change', (e) => {
+    agendaDe = e.target.value ? Number(e.target.value) : null;
+    $('panel-reserva').hidden = true;
+    Promise.all([cargarClientes(), refrescar()]).catch((err) => mostrarError(err.message));
+  });
+
+  $('tira-dias').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-dia]');
+    if (b) irA(b.dataset.dia);
+  });
+  $('ir-ayer').addEventListener('click', () => irA(sumarDias(diaSeleccionado, -1)));
+  $('ir-manana').addEventListener('click', () => irA(sumarDias(diaSeleccionado, 1)));
+  $('ir-hoy').addEventListener('click', () => irA(fechaDesplazada(0)));
 
   $('grilla').addEventListener('click', async (e) => {
     const libre = e.target.closest('[data-hora]');
@@ -176,7 +323,10 @@
     mostrarError();
     try {
       if (libre) abrirReserva(libre.dataset.hora);
-      if (cancelar) { await api('POST', `/api/turnos/${cancelar.dataset.cancelar}/cancelar`); await dibujarGrilla(); }
+      if (cancelar) {
+        await api('POST', agendaUrl(`/api/turnos/${cancelar.dataset.cancelar}/cancelar`));
+        await dibujarGrilla();
+      }
     } catch (err) { mostrarError(err.message); }
   });
 
@@ -184,7 +334,7 @@
     e.preventDefault();
     mostrarError();
     try {
-      await api('POST', '/api/turnos', { clienteId: Number($('select-cliente').value), fecha: diaSeleccionado, hora: horaElegida });
+      await api('POST', agendaUrl('/api/turnos'), { clienteId: Number($('select-cliente').value), fecha: diaSeleccionado, hora: horaElegida });
       $('panel-reserva').hidden = true;
       await dibujarGrilla();
     } catch (err) { mostrarError(err.message); }
@@ -195,17 +345,45 @@
     e.preventDefault();
     mostrarError();
     try {
-      await api('POST', '/api/clientes', Object.fromEntries(new FormData(e.target)));
+      await api('POST', agendaUrl('/api/clientes'), Object.fromEntries(new FormData(e.target)));
       e.target.reset();
       await cargarClientes();
     } catch (err) { mostrarError(err.message); }
   });
 
-  $('ir-ayer').addEventListener('click', () => { diaSeleccionado = sumarDias(diaSeleccionado, -1); refrescar().catch((err) => mostrarError(err.message)); });
-  $('ir-manana').addEventListener('click', () => { diaSeleccionado = sumarDias(diaSeleccionado, 1); refrescar().catch((err) => mostrarError(err.message)); });
-  $('ir-hoy').addEventListener('click', () => { diaSeleccionado = fechaDesplazada(0); refrescar().catch((err) => mostrarError(err.message)); });
+  // Administración de profesionales
+  function mostrarClaveTemporal(texto) { $('clave-temporal').textContent = texto; }
 
-  cargarClientes().then(refrescar).catch((err) => mostrarError(err.message));
+  $('form-profesional').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    mostrarError();
+    try {
+      const alta = await api('POST', '/api/profesionales', Object.fromEntries(new FormData(e.target)));
+      mostrarClaveTemporal(`Clave temporal de ${alta.profesional.nombre}: ${alta.claveTemporal} (se muestra una sola vez)`);
+      e.target.reset();
+      await cargarProfesionales();
+    } catch (err) { mostrarError(err.message); }
+  });
+
+  $('lista-profesionales').addEventListener('click', async (e) => {
+    const reiniciar = e.target.dataset.reiniciar;
+    const desactivar = e.target.dataset.desactivar;
+    if (!reiniciar && !desactivar) return;
+    mostrarError();
+    try {
+      if (reiniciar) {
+        const r = await api('POST', `/api/profesionales/${reiniciar}/reiniciar-clave`);
+        mostrarClaveTemporal(`Nueva clave temporal: ${r.claveTemporal} (se muestra una sola vez)`);
+      }
+      if (desactivar && confirm('¿Desactivar este profesional? Ya no podrá ingresar.')) {
+        await api('POST', `/api/profesionales/${desactivar}/desactivar`);
+        mostrarClaveTemporal('Profesional desactivado.');
+      }
+      await cargarProfesionales();
+    } catch (err) { mostrarError(err.message); }
+  });
+
+  arrancar();
 </script>
 </body>
 </html>

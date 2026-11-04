@@ -5,60 +5,141 @@ const assert = require('node:assert/strict');
 let manejarApi;
 before(async () => { ({ manejarApi } = await import('../src/api.mjs')); });
 
-const ADMIN = 'admin@miespacia.test';
-const ENV = { ADMIN_EMAIL: ADMIN };
+const ADMIN = 'admin@t.test';
+const ADMIN_CLAVE = 'NuevaClave-2';
+const ENV = { ADMIN_EMAIL: ADMIN, ADMIN_CLAVE_INICIAL: 'ClaveInicial-1', SESION_SECRETO: 'secreto-de-prueba-largo' };
 
-function pedir(ruta, email, metodo = 'GET', cuerpo) {
-  const headers = { 'Content-Type': 'application/json' };
-  if (email) headers['Cf-Access-Authenticated-User-Email'] = email;
-  return manejarApi(new Request('http://x' + ruta, { method: metodo, headers, body: cuerpo ? JSON.stringify(cuerpo) : undefined }), ENV);
+const pedir = (ruta, cookie, metodo = 'GET', cuerpo) =>
+  manejarApi(new Request('http://x' + ruta, {
+    method: metodo,
+    headers: { 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) },
+    body: cuerpo ? JSON.stringify(cuerpo) : undefined,
+  }), ENV);
+
+async function ingresar(email, clave) {
+  const r = await manejarApi(new Request('http://x/api/ingresar', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, clave }),
+  }), ENV);
+  const cookie = r.headers.get('set-cookie');
+  return { status: r.status, cookie: cookie ? cookie.split(';')[0] : null, datos: await r.json() };
+}
+
+/** Entra y, si la clave es temporal, la cambia. Devuelve la cookie de sesión. */
+async function entrarListo(email, clave, claveNueva) {
+  const r = await ingresar(email, clave);
+  assert.equal(r.status, 200, `ingreso de ${email}`);
+  if (r.datos.sesion.requiereCambioClave) {
+    const cambio = await pedir('/api/clave', r.cookie, 'POST', { actual: clave, nueva: claveNueva });
+    assert.equal(cambio.status, 200);
+  }
+  return r.cookie;
+}
+
+/** El administrador ya cambió su clave en la primera prueba: entra con la nueva. */
+async function admin() {
+  const r = await ingresar(ADMIN, ADMIN_CLAVE);
+  assert.equal(r.status, 200);
+  return r.cookie;
 }
 
 test('sin sesión no se puede usar la API', async () => {
-  const r = await pedir('/api/clientes');
-  assert.equal(r.status, 401);
+  assert.equal((await pedir('/api/clientes')).status, 401);
 });
 
-test('el administrador da de alta profesionales y cada uno ve solo lo suyo', async () => {
-  let r = await pedir('/api/profesionales', ADMIN, 'POST', { email: 'ana@t.test', nombre: 'Ana' });
-  assert.equal(r.status, 201);
-  const ana = await r.json();
-  await pedir('/api/profesionales', ADMIN, 'POST', { email: 'luis@t.test', nombre: 'Luis' });
+test('el administrador entra con clave inicial y tiene que cambiarla antes de usar la app', async () => {
+  const r = await ingresar(ADMIN, ENV.ADMIN_CLAVE_INICIAL);
+  assert.equal(r.status, 200);
+  assert.equal(r.datos.sesion.requiereCambioClave, true);
+  assert.equal((await pedir('/api/clientes', r.cookie)).status, 403);
+  assert.equal((await pedir('/api/clave', r.cookie, 'POST', { actual: ENV.ADMIN_CLAVE_INICIAL, nueva: ADMIN_CLAVE })).status, 200);
+  assert.equal((await pedir('/api/clientes', r.cookie)).status, 200);
+});
 
-  r = await pedir('/api/clientes', 'ana@t.test', 'POST', { nombre: 'Paciente de Ana' });
+test('clave incorrecta no entra, y un email que no existe da el mismo error', async () => {
+  assert.equal((await ingresar(ADMIN, 'otra-clave')).status, 401);
+  const inexistente = await ingresar('nadie@t.test', 'otra-clave');
+  assert.equal(inexistente.status, 401);
+  assert.equal(inexistente.datos.error, 'Email o clave incorrectos');
+});
+
+test('el administrador da de alta profesionales; cada uno ve solo su agenda', async () => {
+  const cookieAdmin = await admin();
+
+  let r = await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'ana@t.test', nombre: 'Ana' });
+  assert.equal(r.status, 201);
+  const altaAna = await r.json();
+  assert.ok(altaAna.claveTemporal);
+  const anaId = altaAna.profesional.id;
+
+  r = await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'luis@t.test', nombre: 'Luis' });
+  const altaLuis = await r.json();
+
+  const cookieAna = await entrarListo('ana@t.test', altaAna.claveTemporal, 'ClaveAna-2026');
+  const cookieLuis = await entrarListo('luis@t.test', altaLuis.claveTemporal, 'ClaveLuis-2026');
+
+  r = await pedir('/api/clientes', cookieAna, 'POST', { nombre: 'Paciente de Ana' });
   assert.equal(r.status, 201);
 
-  r = await pedir('/api/clientes', 'luis@t.test');
+  r = await pedir('/api/clientes', cookieLuis);
   assert.deepEqual(await r.json(), []);
 
-  r = await pedir(`/api/clientes?profesional=${ana.id}`, 'luis@t.test');
+  r = await pedir(`/api/clientes?profesional=${anaId}`, cookieLuis);
   assert.equal(r.status, 403);
 
-  r = await pedir(`/api/clientes?profesional=${ana.id}`, ADMIN);
+  r = await pedir(`/api/clientes?profesional=${anaId}`, cookieAdmin);
   assert.equal((await r.json()).length, 1);
 });
 
-test('un profesional no puede gestionar profesionales', async () => {
-  const r = await pedir('/api/profesionales', 'ana@t.test');
-  assert.equal(r.status, 403);
+test('un profesional no puede gestionar profesionales ni duplicar emails', async () => {
+  const cookieAdmin = await admin();
+  const altaAna = await (await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'dup@t.test', nombre: 'Dup' })).json();
+  const cookieDup = await entrarListo('dup@t.test', altaAna.claveTemporal, 'ClaveDup-2026');
+  assert.equal((await pedir('/api/profesionales', cookieDup)).status, 403);
+  assert.equal((await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'dup@t.test', nombre: 'Otra' })).status, 409);
 });
 
-test('no se duplican profesionales por email', async () => {
-  const r = await pedir('/api/profesionales', ADMIN, 'POST', { email: 'ana@t.test', nombre: 'Otra' });
-  assert.equal(r.status, 409);
+test('tras 5 intentos fallidos el email queda bloqueado un rato', async () => {
+  const cookieAdmin = await admin();
+  await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'bloq@t.test', nombre: 'Bloq' });
+  for (let i = 0; i < 5; i++) assert.equal((await ingresar('bloq@t.test', 'mala-clave')).status, 401);
+  const bloqueado = await ingresar('bloq@t.test', 'cualquiera');
+  assert.equal(bloqueado.status, 429);
 });
 
-test('desactivar un profesional le corta el acceso', async () => {
-  const marta = await (await pedir('/api/profesionales', ADMIN, 'POST', { email: 'marta@t.test', nombre: 'Marta' })).json();
-  assert.equal((await pedir('/api/yo', 'marta@t.test')).status, 200);
-  assert.equal((await pedir(`/api/profesionales/${marta.id}/desactivar`, ADMIN, 'POST')).status, 200);
-  assert.equal((await pedir('/api/yo', 'marta@t.test')).status, 403);
+test('el administrador reinicia una clave y la anterior deja de servir', async () => {
+  const cookieAdmin = await admin();
+  const alta = await (await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'reinicio@t.test', nombre: 'R' })).json();
+  const profesional = alta.profesional;
+  const nueva = await (await pedir(`/api/profesionales/${profesional.id}/reiniciar-clave`, cookieAdmin, 'POST')).json();
+  assert.ok(nueva.claveTemporal);
+  assert.notEqual(nueva.claveTemporal, alta.claveTemporal);
+  assert.equal((await ingresar('reinicio@t.test', alta.claveTemporal)).status, 401);
+  assert.equal((await ingresar('reinicio@t.test', nueva.claveTemporal)).status, 200);
 });
 
-test('el administrador puede cancelar turnos de cualquier profesional', async () => {
-  const ana = await (await pedir('/api/profesionales', ADMIN, 'POST', { email: 'rita@t.test', nombre: 'Rita' })).json();
-  const cliente = await (await pedir('/api/clientes', 'rita@t.test', 'POST', { nombre: 'C' })).json();
-  const turno = await (await pedir('/api/turnos', 'rita@t.test', 'POST', { clienteId: cliente.id, fecha: '2026-11-10', hora: '09:00' })).json();
-  const r = await pedir(`/api/turnos/${turno.id}/cancelar?profesional=${ana.id}`, ADMIN, 'POST');
-  assert.equal((await r.json()).cancelado, true);
+test('desactivar un profesional le corta el acceso, incluso con sesión abierta', async () => {
+  const cookieAdmin = await admin();
+  const alta = await (await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'marta@t.test', nombre: 'Marta' })).json();
+  const cookieMarta = await entrarListo('marta@t.test', alta.claveTemporal, 'ClaveMarta-2026');
+  assert.equal((await pedir('/api/yo', cookieMarta)).status, 200);
+
+  assert.equal((await pedir(`/api/profesionales/${alta.profesional.id}/desactivar`, cookieAdmin, 'POST')).status, 200);
+  assert.equal((await pedir('/api/yo', cookieMarta)).status, 403);
+  assert.equal((await ingresar('marta@t.test', 'ClaveMarta-2026')).status, 401);
+});
+
+test('el administrador no puede desactivarse a sí mismo', async () => {
+  const cookieAdmin = await admin();
+  const yo = await (await pedir('/api/yo', cookieAdmin)).json();
+  assert.equal((await pedir(`/api/profesionales/${yo.id}/desactivar`, cookieAdmin, 'POST')).status, 400);
+});
+
+test('el administrador puede cancelar un turno de cualquier profesional', async () => {
+  const cookieAdmin = await admin();
+  const alta = await (await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'rita@t.test', nombre: 'Rita' })).json();
+  const cookieRita = await entrarListo('rita@t.test', alta.claveTemporal, 'ClaveRita-2026');
+  const cliente = await (await pedir('/api/clientes', cookieRita, 'POST', { nombre: 'C' })).json();
+  const turno = await (await pedir('/api/turnos', cookieRita, 'POST', { clienteId: cliente.id, fecha: '2026-11-10', hora: '09:00' })).json();
+  const cancelado = await (await pedir(`/api/turnos/${turno.id}/cancelar?profesional=${alta.profesional.id}`, cookieAdmin, 'POST')).json();
+  assert.equal(cancelado.cancelado, true);
 });

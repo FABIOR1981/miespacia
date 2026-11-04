@@ -1,7 +1,7 @@
 'use strict';
 /**
  * Servidor local de miEspacia para probar sin Cloudflare. Usa la misma API (src/api.mjs).
- * Variables de entorno: PORT (3000 por defecto), ADMIN_EMAIL.
+ * Variables: PORT (3000), SESION_SECRETO, ADMIN_EMAIL, ADMIN_CLAVE_INICIAL, DATOS_DE_PRUEBA=1 (opcional).
  */
 
 const http = require('node:http');
@@ -10,7 +10,6 @@ const path = require('node:path');
 
 const PUBLIC = path.join(__dirname, '..', 'public');
 const LIMITE_BODY = 100 * 1024;
-const CABECERA_EMAIL = 'cf-access-authenticated-user-email';
 
 function leerCuerpo(req) {
   return new Promise((resolver, rechazar) => {
@@ -39,7 +38,9 @@ function crearServidor() {
         const { manejarApi } = await import('./api.mjs');
         const sinCuerpo = req.method === 'GET' || req.method === 'HEAD';
         const headers = { 'content-type': req.headers['content-type'] || 'application/json' };
-        if (req.headers[CABECERA_EMAIL]) headers[CABECERA_EMAIL] = req.headers[CABECERA_EMAIL];
+        for (const nombre of ['cookie', 'authorization']) {
+          if (req.headers[nombre]) headers[nombre] = req.headers[nombre];
+        }
         const request = new Request(url.href, {
           method: req.method,
           headers,
