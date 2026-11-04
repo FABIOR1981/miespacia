@@ -36,15 +36,14 @@
     .dia-numero { font-size: 1.15rem; font-weight: 650; }
     .dia[aria-pressed="true"] { background: var(--activo-fondo); border-color: var(--activo-fondo); color: #fff; }
     .dia[aria-pressed="true"] .dia-nombre { color: var(--sobre-tinta); }
-    .grilla { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio-tarjeta); overflow: hidden; }
-    .fila-hora { display: grid; grid-template-columns: 64px 1fr; border-bottom: 1px solid var(--linea); min-height: 52px; }
-    .fila-hora:last-child { border-bottom: 0; }
-    .hora { display: grid; place-items: start center; padding-top: 14px; font-size: .85rem; color: var(--tinta-suave); font-variant-numeric: tabular-nums; border-right: 1px solid var(--linea); }
-    .celda { padding: 8px 10px; display: flex; align-items: center; gap: 8px; }
-    .libre { flex: 1; text-align: left; background: repeating-linear-gradient(135deg, transparent 0 6px, var(--bruma) 6px 7px); border: 1.5px dashed var(--linea-fuerte); border-radius: 10px; min-height: 36px; padding: 0 12px; color: var(--tinta-suave); font: inherit; }
+    .grilla { display: grid; grid-template-columns: 64px 1fr; grid-auto-rows: 52px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio-tarjeta); overflow: hidden; }
+    .hora { border-top: 1px solid var(--linea); border-right: 1px solid var(--linea); padding-top: 12px; text-align: center; font-size: .85rem; color: var(--tinta-suave); font-variant-numeric: tabular-nums; }
+    .celda-libre { border-top: 1px solid var(--linea); padding: 8px 10px; display: flex; align-items: center; }
+    .celda-libre .libre { flex: 1; }
+    .libre { text-align: left; background: repeating-linear-gradient(135deg, transparent 0 6px, var(--bruma) 6px 7px); border: 1.5px dashed var(--linea-fuerte); border-radius: 10px; min-height: 36px; padding: 0 12px; color: var(--tinta-suave); font: inherit; }
     .libre:hover { border-color: var(--pino); color: var(--pino-oscuro); }
-    .reserva { flex: 1; display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--pino-claro); border-left: 4px solid var(--pino); border-radius: 10px; padding: 8px 12px; color: var(--tinta); }
-    .reserva.cancelada { background: var(--bruma); border-left-color: var(--linea-fuerte); color: var(--tinta-suave); text-decoration: line-through; }
+    .reserva-bloque { grid-column: 2; align-self: stretch; margin: 5px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--pino-claro); border-left: 4px solid var(--pino); border-radius: 10px; padding: 8px 12px; color: var(--tinta); }
+    .cancelados { font-size: .9rem; color: var(--tinta-suave); }
     .panel { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio-tarjeta); padding: 16px; display: grid; gap: 10px; }
     .panel h2 { margin: 0; font-size: 1.05rem; color: var(--tinta); }
     .fila { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -60,9 +59,6 @@
     .selector { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .fila label { display: grid; gap: 4px; flex: 1 1 200px; font-size: .9rem; color: var(--tinta-suave); }
     .fila label input { flex: none; width: 100%; }
-    .fila-hora.continua .celda { background: var(--pino-claro); border-left: 4px solid var(--pino); }
-    .fila-hora.continua .hora { color: transparent; }
-    .fila-hora.continua { border-bottom-color: transparent; }
     .reserva-fin { font-size: .85rem; color: var(--tinta-suave); }
     .datos { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0 0 12px; }
     .datos dt { color: var(--tinta-suave); }
@@ -125,6 +121,7 @@
 
       <div class="tira-dias" id="tira-dias" role="group" aria-label="Días"></div>
       <section class="grilla" id="grilla" aria-label="Horarios del día"></section>
+      <p class="cancelados" id="cancelados"></p>
 
       <dialog class="hoja" id="modal-reserva" aria-labelledby="titulo-reserva">
         <header class="hoja-cabecera">
@@ -369,27 +366,26 @@
     const turnos = await api('GET', agendaUrl('/api/turnos', { desde: diaSeleccionado, hasta: diaSeleccionado }));
     const activos = turnos.filter((t) => !t.cancelado);
     const cancelados = turnos.filter((t) => t.cancelado);
-    const cubierto = (m) => activos.find((t) => aMinutos(t.hora) <= m && m < aMinutos(t.hora) + t.duracion);
+    const cubierto = (m) => activos.some((t) => aMinutos(t.hora) <= m && m < aMinutos(t.hora) + t.duracion);
     const comienza = Object.fromEntries(activos.map((t) => [t.hora, t]));
 
-    $('grilla').innerHTML = HORAS.map((h) => {
+    $('grilla').innerHTML = HORAS.map((h, i) => {
+      const fila = i + 1;
       const m = aMinutos(h);
+      const hora = `<div class="hora" style="grid-row:${fila}">${h}</div>`;
       const t = comienza[h];
       if (t) {
-        const cierre = aHora(aMinutos(t.hora) + t.duracion);
-        return `<div class="fila-hora"><div class="hora">${h}</div><div class="celda">
-          <div class="reserva"><span><strong>${escapar(t.clienteNombre || '')}</strong>
-            <span class="reserva-fin"> · ${h} a ${cierre}</span></span>
-            <button class="boton boton-secundario" data-cancelar="${t.id}">Cancelar</button></div>
-        </div></div>`;
+        return hora + `<div class="reserva-bloque" style="grid-row:${fila} / span ${t.duracion / 30}">
+          <span><strong>${escapar(t.clienteNombre || '')}</strong><span class="reserva-fin"> · ${h} a ${aHora(m + t.duracion)}</span></span>
+          <button class="boton boton-secundario" data-cancelar="${t.id}">Cancelar</button></div>`;
       }
-      if (cubierto(m)) {
-        return `<div class="fila-hora continua"><div class="hora">${h}</div><div class="celda"></div></div>`;
-      }
-      return `<div class="fila-hora"><div class="hora">${h}</div><div class="celda">
-        <button class="libre" data-hora="${h}">Libre · reservar</button></div></div>`;
-    }).join('') + cancelados.map((t) =>
-      `<div class="fila-hora"><div class="hora">${t.hora}</div><div class="celda"><div class="reserva cancelada">${escapar(t.clienteNombre || '')} (cancelado)</div></div></div>`).join('');
+      if (cubierto(m)) return hora; // la franja ya la ocupa la reserva que empezó antes
+      return hora + `<div class="celda-libre" style="grid-row:${fila}"><button class="libre" data-hora="${h}">Libre · reservar</button></div>`;
+    }).join('');
+
+    $('cancelados').textContent = cancelados.length
+      ? 'Cancelados: ' + cancelados.map((t) => `${t.clienteNombre || ''} ${t.hora}`).join(' · ')
+      : '';
   }
 
   async function cargarConfiguracion() {
