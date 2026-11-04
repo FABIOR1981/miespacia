@@ -190,6 +190,7 @@
           </form>
         </div>
       </section>
+      <footer class="pie-app"><span>© <span class="pie-anio"></span> miEspacia</span><span class="pie-credito">Built on Espacia by TechFaro · <a href="mailto:techfaro.code@gmail.com">techfaro.code@gmail.com</a></span></footer>
     </div>
 
     <section class="panel" id="panel-clave" hidden>
@@ -471,6 +472,7 @@
           <summary>Cambios anteriores de duración</summary>
           <ul class="lista" id="lista-duraciones"></ul>
         </details>
+        <footer class="pie-app"><span>© <span class="pie-anio"></span> miEspacia</span><span class="pie-credito">Built on Espacia by TechFaro · <a href="mailto:techfaro.code@gmail.com">techfaro.code@gmail.com</a></span></footer>
       </section>
 
       <section class="panel vista" data-vista="profesionales" id="panel-admin" hidden>
@@ -736,6 +738,8 @@
     mostrarError();
     cargarCancelaciones().catch((err) => mostrarError(err.message));
   });
+
+  document.querySelectorAll('.pie-anio').forEach((e) => { e.textContent = new Date().getFullYear(); });
 
   // Grilla animada del panel de ingreso (como en el repo base): los bloques se van corriendo de lugar.
   const MOTIVO_COLUMNAS = 16, MOTIVO_FILAS = 6;
