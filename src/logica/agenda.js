@@ -110,6 +110,7 @@ function crearAgenda(persistencia) {
         telefono: String(datos.telefono ?? '').trim(),
         notas: String(datos.notas ?? '').trim(),
       };
+      if (typeof datos.activo === 'boolean') cambios.activo = datos.activo;
       const cliente = await clientes.actualizar(profesionalId, Number(id), cambios);
       if (!cliente) throw new ErrorDeNegocio('El cliente no existe', 404);
       return cliente;
@@ -117,6 +118,7 @@ function crearAgenda(persistencia) {
 
     async crearCliente(profesionalId, datos = {}) {
       return clientes.crear(profesionalId, {
+        activo: true,
         nombre: textoObligatorio(datos.nombre, 'El nombre'),
         telefono: String(datos.telefono ?? '').trim(),
         notas: String(datos.notas ?? '').trim(),
@@ -173,6 +175,7 @@ function crearAgenda(persistencia) {
 
       const cliente = await clientes.obtener(profesionalId, Number(datos.clienteId));
       if (!cliente) throw new ErrorDeNegocio('El cliente no existe', 404);
+      if (cliente.activo === false) throw new ErrorDeNegocio('Ese cliente está dado de baja. Reactivalo para reservarle', 409);
 
       const cuenta = await profesionales.obtener(profesionalId);
       const duracion = duracionVigente(cuenta, fecha);

@@ -156,3 +156,15 @@ test('al cancelar se puede dejar un motivo; el informe de cancelaciones lo muest
   assert.equal(lista[0].clienteNombre, 'Ana');
   assert.deepEqual(await a.listarCancelaciones(cuenta.id, '2020-01-01', '2020-01-02'), []);
 });
+
+test('un cliente dado de baja no se puede reservar, pero sigue en la lista; al reactivarlo se puede', async () => {
+  const persistencia = crearPersistencia({ modo: 'memoria' });
+  const cuenta = await persistencia.profesionales.crear({ email: 'b@t.test', usuario: 'bajas', nombre: 'B', rol: 'profesional' });
+  const a = crearAgenda(persistencia);
+  const c = await a.crearCliente(cuenta.id, { nombre: 'Marta' });
+  await a.editarCliente(cuenta.id, c.id, { nombre: 'Marta', activo: false });
+  await assert.rejects(a.agendarTurno(cuenta.id, { clienteId: c.id, fecha: '2026-11-25', hora: '10:00' }), /dado de baja/);
+  assert.equal((await a.listarClientes(cuenta.id)).find((x) => x.id === c.id).activo, false);
+  await a.editarCliente(cuenta.id, c.id, { nombre: 'Marta', activo: true });
+  await a.agendarTurno(cuenta.id, { clienteId: c.id, fecha: '2026-11-25', hora: '10:00' });
+});

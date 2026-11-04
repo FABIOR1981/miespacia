@@ -96,6 +96,8 @@
     .campo-clave input { width: 100%; padding-right: 86px; box-sizing: border-box; }
     .ver-clave { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); min-height: 32px; padding: 0 2px; border: 0; background: transparent; color: var(--pino); font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; }
     .ver-clave:focus-visible { outline: 2px solid var(--tinta); outline-offset: 1px; }
+    .check { display: flex; align-items: center; gap: 8px; }
+    .check input { width: auto; min-height: 0; }
     .perfil-cabecera { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
     .iniciales-grandes { flex: none; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--pino); color: var(--papel); font-weight: 700; font-size: 1.05rem; }
     .perfil-nombre { font-size: 1.15rem; font-weight: 650; }
@@ -293,6 +295,7 @@
               <div class="campo"><label for="editar-cliente-nombre">Nombre</label><input id="editar-cliente-nombre" name="nombre" type="text" required></div>
               <div class="campo"><label for="editar-cliente-telefono">Teléfono</label><input id="editar-cliente-telefono" name="telefono" type="text"></div>
               <div class="campo"><label for="editar-cliente-notas">Notas</label><input id="editar-cliente-notas" name="notas" type="text"></div>
+              <div class="campo check"><input id="editar-cliente-activo" name="activo" type="checkbox"><label for="editar-cliente-activo">Activo (se puede reservar)</label></div>
               <div class="hoja-acciones">
                 <button class="boton boton-primario">Guardar</button>
                 <button class="boton boton-secundario" type="button" id="volver-cliente">Cancelar</button>
@@ -384,6 +387,7 @@
         <div class="campo"><label for="editar-nombre">Nombre</label><input id="editar-nombre" name="nombre" type="text" required></div>
         <div class="campo"><label for="editar-usuario">Usuario</label><input id="editar-usuario" name="usuario" type="text" required></div>
         <div class="campo"><label for="editar-email">Email (opcional)</label><input id="editar-email" name="email" type="email"></div>
+        <div class="campo check"><input id="editar-activo" name="activo" type="checkbox"><label for="editar-activo">Activo (puede entrar y ser elegido para reservar)</label></div>
         <div class="campo"><label for="editar-duracion">Duración de las reservas</label><select id="editar-duracion" name="duracionTurno"></select></div>
         <fieldset class="campo">
           <legend>Horario de la agenda</legend>
@@ -626,7 +630,9 @@
     editandoId = id;
     $('editar-nombre').value = p.nombre;
     $('editar-usuario').value = p.usuario || '';
-    $('editar-email').value = p.email;
+    $('editar-email').value = p.email || '';
+    $('editar-activo').checked = p.activo !== false;
+    $('editar-activo').disabled = p.id === yo.id;
     $('editar-duracion').innerHTML = opcionesDuracion(p.duracionTurno);
     $('editar-desde').innerHTML = opcionesHora(p.horario.desde);
     $('editar-hasta').innerHTML = opcionesHora(p.horario.hasta);
@@ -642,6 +648,7 @@
     $('editar-cliente-nombre').value = c.nombre;
     $('editar-cliente-telefono').value = c.telefono || '';
     $('editar-cliente-notas').value = c.notas || '';
+    $('editar-cliente-activo').checked = c.activo !== false;
     $('modal-cliente').showModal();
   });
   $('cerrar-cliente').addEventListener('click', () => $('modal-cliente').close());
@@ -654,6 +661,7 @@
         nombre: $('editar-cliente-nombre').value,
         telefono: $('editar-cliente-telefono').value,
         notas: $('editar-cliente-notas').value,
+        activo: $('editar-cliente-activo').checked,
       });
       $('modal-cliente').close();
       await Promise.all([cargarClientes(), dibujarGrilla()]);
@@ -677,6 +685,7 @@
         nombre: $('editar-nombre').value,
         usuario: $('editar-usuario').value,
         email: $('editar-email').value,
+        activo: $('editar-activo').checked,
         duracionTurno: Number($('editar-duracion').value),
         horario: { desde: $('editar-desde').value, hasta: $('editar-hasta').value },
       };
@@ -699,13 +708,12 @@
           <strong>${escapar(p.nombre)}${p.activo ? '' : ' · desactivado'}</strong>
           <span class="detalle">@${escapar(p.usuario || '')}${p.email ? ` · ${escapar(p.email)}` : ' · sin email'}</span>
         </div>
-        ${p.activo ? `
-          <div class="profe-acciones">
-            <button class="boton boton-secundario" data-editar="${p.id}">Editar</button>
-            ${p.id !== yo.id ? `
-              <button class="boton boton-secundario" data-reiniciar="${p.id}">Reiniciar clave</button>
-              <button class="boton boton-secundario" data-desactivar="${p.id}">Desactivar</button>` : ''}
-          </div>` : ''}
+        <div class="profe-acciones">
+          <button class="boton boton-secundario" data-editar="${p.id}">Editar</button>
+          ${p.activo && p.id !== yo.id ? `
+            <button class="boton boton-secundario" data-reiniciar="${p.id}">Reiniciar clave</button>
+            <button class="boton boton-secundario" data-desactivar="${p.id}">Desactivar</button>` : ''}
+        </div>
       </li>`).join('') || '<li class="detalle">Todavía no hay profesionales</li>';
   }
 
@@ -715,11 +723,14 @@
   async function cargarClientes() {
     const clientes = await api('GET', agendaUrl('/api/clientes'));
     clientesLista = clientes;
-    $('lista-clientes').innerHTML = clientes.map((c) =>
-      `<li><span>${escapar(c.nombre)} <span class="detalle">${escapar(c.telefono || '')}</span></span>
-        <button class="boton boton-secundario" data-editar-cliente="${c.id}">Editar</button></li>`).join('')
+    $('lista-clientes').innerHTML = clientes.map((c) => {
+      const baja = c.activo === false;
+      return `<li class="${baja ? 'inactivo' : ''}"><span>${escapar(c.nombre)} <span class="detalle">${escapar(c.telefono || '')}${baja ? ' · dado de baja' : ''}</span></span>
+        <button class="boton boton-secundario" data-editar-cliente="${c.id}">Editar</button></li>`;
+    }).join('')
       || `<li class="detalle">Todavía no hay ${ETIQUETAS[etiqueta].p}</li>`;
-    $('select-cliente').innerHTML = clientes.map((c) => `<option value="${c.id}">${escapar(c.nombre)}</option>`).join('');
+    // Los combos solo muestran los activos: los dados de baja no se pueden elegir para reservar.
+    $('select-cliente').innerHTML = clientes.filter((c) => c.activo !== false).map((c) => `<option value="${c.id}">${escapar(c.nombre)}</option>`).join('');
   }
 
   function dibujarTira() {

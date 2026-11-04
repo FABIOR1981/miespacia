@@ -134,7 +134,9 @@ async function editarProfesional(ctx, id, datos) {
   if (datos.duracionTurno !== undefined && duracion !== duracionVigente(actual, fechaLocal())) {
     await ctx.agenda.cambiarDuracion(id, duracion);
   }
-  const cuenta = await ctx.persistencia.profesionales.actualizar(id, identidad);
+  const cambios = { ...identidad };
+  if (typeof datos.activo === 'boolean') cambios.activo = datos.activo;
+  const cuenta = await ctx.persistencia.profesionales.actualizar(id, cambios);
   return resumen(cuenta);
 }
 
@@ -153,7 +155,11 @@ async function rutaProfesionales(ctx, request, partes, actor) {
       if (!cuenta) throw new ErrorDeNegocio('El profesional no existe', 404);
       return json(200, { claveTemporal: clave });
     }
-    if (partes[3] === 'editar') return json(200, await editarProfesional(ctx, id, await leerBody(request)));
+    if (partes[3] === 'editar') {
+      const datos = await leerBody(request);
+      if (datos.activo === false && id === actor.id) throw new ErrorDeNegocio('No podés darte de baja a vos mismo');
+      return json(200, await editarProfesional(ctx, id, datos));
+    }
     if (partes[3] === 'desactivar') {
       if (id === actor.id) throw new ErrorDeNegocio('No podés desactivar tu propia cuenta');
       const cuenta = await p.desactivar(id);

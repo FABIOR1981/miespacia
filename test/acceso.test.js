@@ -147,3 +147,21 @@ test('el administrador puede cancelar un turno de cualquier profesional', async 
   const cancelado = await (await pedir(`/api/turnos/${turno.id}/cancelar?profesional=${alta.profesional.id}`, cookieAdmin, 'POST')).json();
   assert.equal(cancelado.cancelado, true);
 });
+
+test('un profesional dado de baja no entra; al reactivarlo vuelve a entrar; nadie se da de baja a sí mismo', async () => {
+  const cookieAdmin = await admin();
+  const alta = await (await pedir('/api/profesionales', cookieAdmin, 'POST', { usuario: 'baja', nombre: 'Baja' })).json();
+  const id = alta.profesional.id;
+  const clave = alta.claveTemporal;
+
+  let r = await pedir(`/api/profesionales/${id}/editar`, cookieAdmin, 'POST', { nombre: 'Baja', usuario: 'baja', email: '', duracionTurno: 60, horario: { desde: '08:00', hasta: '21:00' }, activo: false });
+  assert.equal(r.status, 200);
+  assert.equal((await ingresar('baja', clave)).status, 401);
+
+  r = await pedir(`/api/profesionales/${id}/editar`, cookieAdmin, 'POST', { nombre: 'Baja', usuario: 'baja', email: '', duracionTurno: 60, horario: { desde: '08:00', hasta: '21:00' }, activo: true });
+  assert.equal(r.status, 200);
+  assert.equal((await ingresar('baja', clave)).status, 200);
+
+  const yo = await (await pedir(`/api/profesionales/${(await (await pedir('/api/yo', cookieAdmin)).json()).id}/editar`, cookieAdmin, 'POST', { nombre: 'Admin', usuario: 'admin', email: ADMIN, duracionTurno: 60, horario: { desde: '08:00', hasta: '21:00' }, activo: false })).json();
+  assert.match(yo.error, /vos mismo/);
+});
