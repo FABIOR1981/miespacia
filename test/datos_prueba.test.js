@@ -38,4 +38,7 @@ test('Rita (ritam) está en los datos de prueba y entra con su usuario', async (
   const r = await ingresar('ritam', rita.clave);
   assert.equal(r.status, 200);
   assert.equal((await (await pedir('/api/clientes', r.cookie)).json()).length, 3);
+  const cfg = await (await pedir('/api/configuracion', r.cookie)).json();
+  assert.equal(cfg.etiquetaClientes, 'paciente');
+  assert.deepEqual(cfg.horario, { desde: '08:00', hasta: '22:00' });
 });
