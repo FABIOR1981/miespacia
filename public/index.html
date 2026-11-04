@@ -60,6 +60,10 @@
     .fila-hora.continua .hora { color: transparent; }
     .fila-hora.continua { border-bottom-color: transparent; }
     .reserva-fin { font-size: .85rem; color: var(--tinta-suave); }
+    .datos { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0 0 12px; }
+    .datos dt { color: var(--tinta-suave); }
+    .datos dd { margin: 0; color: var(--tinta); }
+    .cuenta-boton { background: transparent; border: 1px solid var(--sobre-tinta-tenue); color: #fff; border-radius: var(--radio-boton); padding: 6px 12px; }
     .selector select { min-height: 42px; padding: 0 12px; border: 1.5px solid var(--linea-fuerte); border-radius: var(--radio-campo); background: var(--papel); }
   </style>
 </head>
@@ -67,6 +71,7 @@
   <header class="barra">
     <span>miEspacia</span>
     <span class="usuario" id="usuario"></span>
+    <button class="cuenta-boton" id="boton-cuenta" hidden>Mi cuenta</button>
     <button id="salir" hidden>Salir</button>
   </header>
 
@@ -107,18 +112,6 @@
       </section>
 
       <div class="vista" data-vista="agenda">
-      <section class="panel">
-        <div class="selector">
-          <label for="select-duracion">Duración de cada turno</label>
-          <select id="select-duracion">
-            <option value="30">30 minutos</option>
-            <option value="60">60 minutos</option>
-            <option value="90">90 minutos</option>
-            <option value="120">2 horas</option>
-          </select>
-          <button class="boton boton-secundario" id="guardar-duracion">Guardar</button>
-        </div>
-      </section>
       <div class="cabecera-dia">
         <div class="fecha-actual" id="fecha-actual"></div>
         <div class="nav-fecha">
@@ -168,6 +161,23 @@
     </div>
   </main>
 
+  <dialog class="modal" id="modal-cuenta" aria-labelledby="titulo-cuenta">
+    <h2 id="titulo-cuenta">Mi cuenta</h2>
+    <dl class="datos">
+      <dt>Nombre</dt><dd id="cuenta-nombre"></dd>
+      <dt>Email</dt><dd id="cuenta-email"></dd>
+      <dt>Perfil</dt><dd id="cuenta-rol"></dd>
+    </dl>
+    <form id="form-duracion">
+      <label>Duración de mis turnos<select id="cuenta-duracion" name="duracionTurno"></select></label>
+      <p class="detalle">Se aplica a los turnos que reserves desde ahora. Los que ya están reservados quedan como están.</p>
+      <div class="acciones">
+        <button type="button" class="boton boton-secundario" id="cerrar-cuenta">Cerrar</button>
+        <button class="boton boton-primario">Guardar duración</button>
+      </div>
+    </form>
+  </dialog>
+
 <script>
   const $ = (id) => document.getElementById(id);
   const formato = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Montevideo', year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -177,6 +187,9 @@
   const aHora = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
   const HORAS = Array.from({ length: 26 }, (_, i) => aHora(8 * 60 + i * 30)); // 08:00 a 20:30, de a 30 minutos
   let duracionActual = 60;
+  const DURACIONES = [30, 60, 90, 120, 150, 180, 210, 240];
+  const opcionesDuracion = (actual) => DURACIONES.map((m) =>
+    `<option value="${m}" ${m === actual ? 'selected' : ''}>${m} minutos</option>`).join('');
 
   let yo = null;
   let profesionales = [];
@@ -221,6 +234,7 @@
     $('panel-clave').hidden = pantalla !== 'clave';
     $('app').hidden = pantalla !== 'app';
     $('salir').hidden = pantalla === 'ingreso';
+    $('boton-cuenta').hidden = pantalla !== 'app';
   }
 
   async function arrancar() {
@@ -271,10 +285,13 @@
     $('lista-profesionales').innerHTML = profesionales.map((p) => `
       <li class="${p.activo ? '' : 'inactivo'}">
         <span>${escapar(p.nombre)} <span class="detalle">${escapar(p.email)}${p.activo ? '' : ' · desactivado'}</span></span>
-        ${p.id !== yo.id && p.activo ? `
-          <span>
-            <button class="boton boton-secundario" data-reiniciar="${p.id}">Reiniciar clave</button>
-            <button class="boton boton-secundario" data-desactivar="${p.id}">Desactivar</button>
+        ${p.activo ? `
+          <span class="fila">
+            <select data-duracion="${p.id}">${opcionesDuracion(p.duracionTurno)}</select>
+            <button class="boton boton-secundario" data-guardar="${p.id}">Guardar duración</button>
+            ${p.id !== yo.id ? `
+              <button class="boton boton-secundario" data-reiniciar="${p.id}">Reiniciar clave</button>
+              <button class="boton boton-secundario" data-desactivar="${p.id}">Desactivar</button>` : ''}
           </span>` : ''}
       </li>`).join('') || '<li class="detalle">Todavía no hay profesionales</li>';
   }
@@ -327,7 +344,6 @@
   async function cargarConfiguracion() {
     const c = await api('GET', agendaUrl('/api/configuracion'));
     duracionActual = c.duracionTurno;
-    $('select-duracion').value = String(duracionActual);
   }
 
   async function refrescar() {
@@ -370,6 +386,30 @@
     } catch (err) { mostrarError(err.message); }
   });
 
+  $('boton-cuenta').addEventListener('click', () => {
+    $('cuenta-nombre').textContent = yo.nombre;
+    $('cuenta-email').textContent = yo.email;
+    $('cuenta-rol').textContent = yo.rol === 'admin' ? 'Administrador' : 'Profesional';
+    $('cuenta-duracion').innerHTML = opcionesDuracion(yo.duracionTurno);
+    $('modal-cuenta').showModal();
+  });
+  $('cerrar-cuenta').addEventListener('click', () => $('modal-cuenta').close());
+  $('form-duracion').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    mostrarError();
+    try {
+      const nueva = Number($('cuenta-duracion').value);
+      await api('POST', '/api/configuracion', { duracionTurno: nueva });
+      yo.duracionTurno = nueva;
+      $('modal-cuenta').close();
+      if (!agendaDe || agendaDe === yo.id) {
+        duracionActual = nueva;
+        await dibujarGrilla();
+      }
+      mostrarError();
+    } catch (err) { mostrarError(err.message); }
+  });
+
   $('salir').addEventListener('click', async () => {
     await api('POST', '/api/salir').catch(() => {});
     location.reload();
@@ -380,15 +420,6 @@
     agendaDe = e.target.value ? Number(e.target.value) : null;
     $('modal-reserva').close();
     Promise.all([cargarClientes(), cargarConfiguracion(), refrescar()]).catch((err) => mostrarError(err.message));
-  });
-
-  $('guardar-duracion').addEventListener('click', async () => {
-    mostrarError();
-    try {
-      await api('POST', agendaUrl('/api/configuracion'), { duracionTurno: Number($('select-duracion').value) });
-      await cargarConfiguracion();
-      await dibujarGrilla();
-    } catch (err) { mostrarError(err.message); }
   });
 
   $('tira-dias').addEventListener('click', (e) => {
@@ -450,9 +481,15 @@
   $('lista-profesionales').addEventListener('click', async (e) => {
     const reiniciar = e.target.dataset.reiniciar;
     const desactivar = e.target.dataset.desactivar;
-    if (!reiniciar && !desactivar) return;
+    const guardar = e.target.dataset.guardar;
+    if (!reiniciar && !desactivar && !guardar) return;
     mostrarError();
     try {
+      if (guardar) {
+        const duracion = Number(document.querySelector(`[data-duracion="${guardar}"]`).value);
+        await api('POST', `/api/configuracion?profesional=${guardar}`, { duracionTurno: duracion });
+        mostrarClaveTemporal(`Duración actualizada: ${duracion} minutos.`);
+      }
       if (reiniciar) {
         const r = await api('POST', `/api/profesionales/${reiniciar}/reiniciar-clave`);
         mostrarClaveTemporal(`Nueva clave temporal: ${r.claveTemporal} (se muestra una sola vez)`);
