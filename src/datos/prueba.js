@@ -19,7 +19,7 @@ async function sembrarDatosDePrueba(persistencia, agenda) {
   for (const datos of PROFESIONALES) {
     if (await persistencia.profesionales.porEmail(datos.email)) continue;
     const cuenta = await persistencia.profesionales.crear({
-      email: datos.email, nombre: datos.nombre, rol: 'profesional', claveHash, requiereCambioClave: false,
+      email: datos.email, usuario: datos.email.split('@')[0], nombre: datos.nombre, rol: 'profesional', claveHash, requiereCambioClave: false,
     });
     const clientes = [];
     for (const [i, nombre] of datos.clientes.entries()) {

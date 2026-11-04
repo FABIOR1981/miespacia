@@ -37,6 +37,7 @@ async function inicializar(ctx, env) {
   if (env.ADMIN_EMAIL && env.ADMIN_CLAVE_INICIAL && !(await profesionales.porEmail(env.ADMIN_EMAIL))) {
     await profesionales.crear({
       email: env.ADMIN_EMAIL,
+      usuario: usuarioDesdeEmail(env.ADMIN_EMAIL),
       nombre: 'Administrador',
       rol: 'admin',
       claveHash: await hashearClave(env.ADMIN_CLAVE_INICIAL),
@@ -70,6 +71,7 @@ function resumen(cuenta) {
     id: cuenta.id,
     nombre: cuenta.nombre,
     email: cuenta.email,
+    usuario: cuenta.usuario,
     rol: cuenta.rol,
     requiereCambioClave: cuenta.requiereCambioClave === true,
     activo: cuenta.activo !== false,
@@ -86,19 +88,44 @@ async function cambiarClave(ctx, actor, datos) {
   await ctx.persistencia.profesionales.actualizar(actor.id, { claveHash: await hashearClave(nueva), requiereCambioClave: false });
 }
 
-async function altaProfesional(ctx, datos) {
-  const email = String(datos.email ?? '').trim().toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new ErrorDeNegocio('El email no es válido');
+/** Usuario a partir del email: la parte antes del @, en minúsculas y sin caracteres raros. */
+function usuarioDesdeEmail(email) {
+  const base = String(email).split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g, '');
+  return base.length >= 3 ? base.slice(0, 30) : 'usuario';
+}
+
+/** Valida nombre, email y usuario; el email y el usuario no pueden repetirse (salvo en la misma cuenta). */
+async function validarIdentidad(ctx, datos, idActual = null) {
   const nombre = String(datos.nombre ?? '').trim();
   if (!nombre) throw new ErrorDeNegocio('El nombre es obligatorio');
-  if (await ctx.persistencia.profesionales.porEmail(email)) {
-    throw new ErrorDeNegocio('Ya existe un profesional con ese email', 409);
+  const email = String(datos.email ?? '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new ErrorDeNegocio('El email no es válido');
+  const usuario = String(datos.usuario || usuarioDesdeEmail(email)).trim().toLowerCase();
+  if (!/^[a-z0-9._-]{3,30}$/.test(usuario)) {
+    throw new ErrorDeNegocio('El usuario tiene de 3 a 30 caracteres: letras, números, punto, guion o guion bajo');
   }
+  const p = ctx.persistencia.profesionales;
+  const otroEmail = await p.porEmail(email);
+  if (otroEmail && otroEmail.id !== idActual) throw new ErrorDeNegocio('Ya existe un profesional con ese email', 409);
+  const otroUsuario = await p.porUsuario(usuario);
+  if (otroUsuario && otroUsuario.id !== idActual) throw new ErrorDeNegocio('Ya existe un profesional con ese usuario', 409);
+  return { nombre, email, usuario };
+}
+
+async function altaProfesional(ctx, datos) {
+  const identidad = await validarIdentidad(ctx, datos);
   const clave = claveTemporal();
   const cuenta = await ctx.persistencia.profesionales.crear({
-    email, nombre, rol: 'profesional', claveHash: await hashearClave(clave), requiereCambioClave: true,
+    ...identidad, rol: 'profesional', claveHash: await hashearClave(clave), requiereCambioClave: true,
   });
   return { profesional: resumen(cuenta), claveTemporal: clave };
+}
+
+async function editarProfesional(ctx, id, datos) {
+  const identidad = await validarIdentidad(ctx, datos, id);
+  const cuenta = await ctx.persistencia.profesionales.actualizar(id, identidad);
+  if (!cuenta) throw new ErrorDeNegocio('El profesional no existe', 404);
+  return resumen(cuenta);
 }
 
 async function rutaProfesionales(ctx, request, partes, actor) {
@@ -116,6 +143,7 @@ async function rutaProfesionales(ctx, request, partes, actor) {
       if (!cuenta) throw new ErrorDeNegocio('El profesional no existe', 404);
       return json(200, { claveTemporal: clave });
     }
+    if (partes[3] === 'editar') return json(200, await editarProfesional(ctx, id, await leerBody(request)));
     if (partes[3] === 'desactivar') {
       if (id === actor.id) throw new ErrorDeNegocio('No podés desactivar tu propia cuenta');
       const cuenta = await p.desactivar(id);

@@ -20,10 +20,16 @@ function crearProfesionalesEnMemoria() {
       return r ? copia(r) : null;
     },
 
-    crear: async ({ email, nombre, rol, claveHash = null, requiereCambioClave = false, duracionTurno = 60 }) => {
+    porUsuario: async (usuario) => {
+      const r = registros.find((x) => x.usuario === String(usuario).toLowerCase());
+      return r ? copia(r) : null;
+    },
+
+    crear: async ({ email, usuario, nombre, rol, claveHash = null, requiereCambioClave = false, duracionTurno = 60 }) => {
       const nuevo = {
         id: secuencia++,
         email: String(email).toLowerCase(),
+        usuario: String(usuario).toLowerCase(),
         nombre,
         rol,
         claveHash,

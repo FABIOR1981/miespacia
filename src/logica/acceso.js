@@ -54,7 +54,7 @@ async function ingresar({ email, clave, env, profesionales, ahora = Date.now() }
     throw new ErrorDeAcceso('Demasiados intentos. Esperá unos minutos e intentá de nuevo.', 429);
   }
 
-  const cuenta = correo ? await profesionales.porEmail(correo) : null;
+  const cuenta = correo ? (await profesionales.porEmail(correo)) ?? (await profesionales.porUsuario(correo)) : null;
   const ok = !!cuenta && cuenta.activo && (await verificarClave(String(clave ?? ''), cuenta.claveHash));
   if (!ok) {
     const bloqueoVencido = !!registro?.bloqueadoHasta && registro.bloqueadoHasta <= ahora;
