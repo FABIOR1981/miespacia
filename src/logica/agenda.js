@@ -90,6 +90,28 @@ function etiquetaDe(cuenta) {
   return ETIQUETAS_CLIENTES.includes(cuenta.etiquetaClientes) ? cuenta.etiquetaClientes : 'cliente';
 }
 
+// Para detectar duplicados: el nombre sin acentos, mayúsculas ni espacios de más; el teléfono, solo dígitos.
+const claveNombre = (n) => String(n || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+const digitosTelefono = (t) => String(t || '').replace(/\D/g, '');
+
+/**
+ * Impide cargar dos veces a la misma persona: mismo nombre (sin importar acentos o mayúsculas)
+ * o mismo teléfono, dentro de la agenda de cada profesional. `excluirId` es el propio cliente al editarlo.
+ */
+async function verificarDuplicado(clientes, profesionalId, datos, excluirId) {
+  const existentes = await clientes.listar(profesionalId);
+  for (const c of existentes) {
+    if (c.id === excluirId) continue;
+    if (claveNombre(c.nombre) === claveNombre(datos.nombre)) {
+      throw new ErrorDeNegocio(`Ya tenés un cliente con ese nombre: ${c.nombre}`, 409);
+    }
+    const tel = digitosTelefono(datos.telefono);
+    if (tel.length >= 6 && digitosTelefono(c.telefono) === tel) {
+      throw new ErrorDeNegocio(`Ese teléfono ya está cargado para ${c.nombre}`, 409);
+    }
+  }
+}
+
 function crearAgenda(persistencia) {
   const { profesionales, clientes, turnos } = persistencia;
 
@@ -116,18 +138,21 @@ function crearAgenda(persistencia) {
         notas: String(datos.notas ?? '').trim(),
       };
       if (typeof datos.activo === 'boolean') cambios.activo = datos.activo;
+      await verificarDuplicado(clientes, profesionalId, cambios, Number(id));
       const cliente = await clientes.actualizar(profesionalId, Number(id), cambios);
       if (!cliente) throw new ErrorDeNegocio('El cliente no existe', 404);
       return cliente;
     },
 
     async crearCliente(profesionalId, datos = {}) {
-      return clientes.crear(profesionalId, {
+      const nuevo = {
         activo: true,
         nombre: textoObligatorio(datos.nombre, 'El nombre'),
         telefono: String(datos.telefono ?? '').trim(),
         notas: String(datos.notas ?? '').trim(),
-      });
+      };
+      await verificarDuplicado(clientes, profesionalId, nuevo);
+      return clientes.crear(profesionalId, nuevo);
     },
 
     async listarTurnos(profesionalId, desde, hasta) {
