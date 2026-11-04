@@ -106,13 +106,16 @@
     .iniciales-grandes { flex: none; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--pino); color: var(--papel); font-weight: 700; font-size: 1.05rem; }
     .perfil-nombre { font-size: 1.15rem; font-weight: 650; }
     .perfil-rol { color: var(--tinta-suave); font-size: .9rem; }
-    .perfil-tarjetas { display: grid; gap: 16px; margin-top: 16px; }
-    @media (min-width: 720px) { .perfil-tarjetas { grid-template-columns: 1fr 1fr; } }
-    .perfil-tarjeta { display: grid; gap: 12px; align-content: start; padding: 16px; border: 1px solid var(--linea); border-radius: 12px; }
-    .perfil-tarjeta h3 { margin: 0; }
-    .perfil-tarjeta.ancha { grid-column: 1 / -1; }
-    .perfil-tarjeta p { margin: 0; }
-    .perfil-tarjeta form { display: grid; gap: 12px; }
+    .ajustes { list-style: none; margin: 0 0 12px; padding: 0; border-top: 1px solid var(--linea); }
+    .ajuste { padding: 14px 0; border-bottom: 1px solid var(--linea); }
+    .ajuste-fila { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .ajuste-nombre { display: block; font-weight: 600; }
+    .ajuste-valor { display: block; color: var(--tinta-suave); font-size: .95rem; }
+    .ajuste-form { display: grid; gap: 12px; margin-top: 12px; }
+    [hidden] { display: none !important; }
+    .ajuste-form .detalle { margin: 0; }
+    .ajuste-historial { margin-top: 16px; }
+    .ajuste-historial summary { cursor: pointer; color: var(--tinta-suave); }
     .perfil-campos { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
     .perfil-campos label { display: grid; gap: 4px; }
     .lista li.comentario { display: grid; gap: 4px; }
@@ -318,50 +321,81 @@
           </div>
         </div>
         <dl class="datos">
+          <dt>Usuario</dt><dd id="perfil-usuario"></dd>
           <dt>Email</dt><dd id="perfil-email"></dd>
         </dl>
-        <div class="perfil-tarjetas">
-          <article class="perfil-tarjeta">
-            <h3>Duración de mis reservas</h3>
-            <p class="detalle" id="perfil-vigente"></p>
-            <form id="form-duracion">
+
+        <h3>Mi agenda</h3>
+        <p class="aviso-ok" id="perfil-aviso"></p>
+        <ul class="ajustes">
+          <li class="ajuste">
+            <div class="ajuste-fila">
+              <div>
+                <span class="ajuste-nombre">Duración de las reservas</span>
+                <span class="ajuste-valor" id="valor-duracion"></span>
+              </div>
+              <button class="boton boton-secundario" type="button" data-abrir>Cambiar</button>
+            </div>
+            <form id="form-duracion" class="ajuste-form" hidden>
+              <p class="detalle">Rige desde el día que elijas. Las reservas ya hechas no cambian.</p>
               <div class="perfil-campos">
                 <label>Duración<select id="perfil-duracion" name="duracionTurno"></select></label>
-                <label>Rige desde<input type="date" id="perfil-desde" name="desde" required></label>
+                <label>Desde<input type="date" id="perfil-desde" name="desde" required></label>
               </div>
-              <button class="boton boton-primario">Guardar duración</button>
+              <div class="hoja-acciones">
+                <button class="boton boton-primario">Guardar</button>
+                <button class="boton boton-secundario" type="button" data-cerrar>Cancelar</button>
+              </div>
             </form>
-            <p class="detalle">Desde esa fecha, las reservas nuevas duran lo elegido. Las ya reservadas quedan como están.</p>
-            <p class="aviso-ok" id="perfil-aviso"></p>
-            <ul class="lista" id="lista-duraciones"></ul>
-          </article>
-          <article class="perfil-tarjeta">
-            <h3>Horario de la agenda</h3>
-            <form id="form-horario">
+          </li>
+          <li class="ajuste">
+            <div class="ajuste-fila">
+              <div>
+                <span class="ajuste-nombre">Horario de la agenda</span>
+                <span class="ajuste-valor" id="valor-horario"></span>
+              </div>
+              <button class="boton boton-secundario" type="button" data-abrir>Cambiar</button>
+            </div>
+            <form id="form-horario" class="ajuste-form" hidden>
+              <p class="detalle">Los turnos empiezan dentro de este horario y terminan antes de la hora de cierre. Vale para todos los días.</p>
               <div class="perfil-campos">
                 <label>Desde<select id="horario-desde"></select></label>
                 <label>Hasta<select id="horario-hasta"></select></label>
               </div>
-              <button class="boton boton-primario">Guardar horario</button>
+              <div class="hoja-acciones">
+                <button class="boton boton-primario">Guardar</button>
+                <button class="boton boton-secundario" type="button" data-cerrar>Cancelar</button>
+              </div>
             </form>
-            <p class="detalle">Los turnos empiezan dentro de este horario y terminan antes de la hora de cierre. Vale para todos los días.</p>
-            <p class="aviso-ok" id="horario-aviso"></p>
-          </article>
-          <article class="perfil-tarjeta ancha">
-            <h3>Cómo llamo a mis clientes</h3>
-            <p class="detalle">Ese nombre aparece en el menú, en la agenda y en los formularios.</p>
-            <form id="form-etiqueta">
+          </li>
+          <li class="ajuste">
+            <div class="ajuste-fila">
+              <div>
+                <span class="ajuste-nombre">Cómo llamo a mis clientes</span>
+                <span class="ajuste-valor" id="valor-etiqueta"></span>
+              </div>
+              <button class="boton boton-secundario" type="button" data-abrir>Cambiar</button>
+            </div>
+            <form id="form-etiqueta" class="ajuste-form" hidden>
+              <p class="detalle">Ese nombre aparece en el menú, en la agenda y en los formularios.</p>
               <div class="perfil-campos">
                 <label>Nombre<select id="perfil-etiqueta">
                   <option value="cliente">Cliente / Clientes</option>
                   <option value="paciente">Paciente / Pacientes</option>
                 </select></label>
               </div>
-              <button class="boton boton-primario">Guardar</button>
+              <div class="hoja-acciones">
+                <button class="boton boton-primario">Guardar</button>
+                <button class="boton boton-secundario" type="button" data-cerrar>Cancelar</button>
+              </div>
             </form>
-            <p class="aviso-ok" id="etiqueta-aviso"></p>
-          </article>
-        </div>
+          </li>
+        </ul>
+
+        <details class="ajuste-historial">
+          <summary>Cambios anteriores de duración</summary>
+          <ul class="lista" id="lista-duraciones"></ul>
+        </details>
       </section>
 
       <section class="panel vista" data-vista="profesionales" id="panel-admin" hidden>
@@ -584,6 +618,25 @@
     cargarSeguimiento().catch((err) => mostrarError(err.message));
   });
 
+  // Cada ajuste muestra su valor y se edita en un formulario que se abre al tocar Cambiar.
+  function cerrarAjuste(form) {
+    form.hidden = true;
+    form.closest('.ajuste').querySelector('[data-abrir]').hidden = false;
+  }
+
+  document.querySelectorAll('.ajuste').forEach((fila) => {
+    const abrir = fila.querySelector('[data-abrir]');
+    const form = fila.querySelector('.ajuste-form');
+    abrir.addEventListener('click', () => {
+      document.querySelectorAll('.ajuste-form').forEach((f) => { if (f !== form) cerrarAjuste(f); });
+      $('perfil-aviso').textContent = '';
+      form.hidden = false;
+      abrir.hidden = true;
+      form.querySelector('select, input').focus();
+    });
+    fila.querySelector('[data-cerrar]').addEventListener('click', () => cerrarAjuste(form));
+  });
+
   async function cargarPerfil() {
     $('perfil-nombre').textContent = yo.nombre;
     $('perfil-email').textContent = yo.email || 'Sin email';
@@ -594,7 +647,10 @@
     $('perfil-duracion').innerHTML = opcionesDuracion(c.duracionTurno);
     $('perfil-desde').min = fechaDesplazada(0);
     $('perfil-desde').value = fechaDesplazada(0);
-    $('perfil-vigente').textContent = `Hoy las reservas duran ${c.duracionTurno} minutos.`;
+    $('perfil-usuario').textContent = yo.usuario || '—';
+    $('valor-duracion').textContent = `${c.duracionTurno} minutos, desde hoy`;
+    $('valor-horario').textContent = `${c.horario.desde} a ${c.horario.hasta}`;
+    $('valor-etiqueta').textContent = ETIQUETAS[c.etiquetaClientes].P;
     $('horario-desde').innerHTML = opcionesHora(c.horario.desde);
     $('horario-hasta').innerHTML = opcionesHora(c.horario.hasta);
     $('lista-duraciones').innerHTML = c.historial.length
@@ -609,7 +665,8 @@
       const valor = $('perfil-etiqueta').value;
       await api('POST', '/api/configuracion', { etiquetaClientes: valor });
       aplicarEtiqueta(valor);
-      $('etiqueta-aviso').textContent = `Listo: ahora se muestra "${ETIQUETAS[valor].P}".`;
+      cerrarAjuste($('form-etiqueta'));
+      $('perfil-aviso').textContent = `Listo: ahora se muestra "${ETIQUETAS[valor].P}".`;
     } catch (err) { mostrarError(err.message); }
   });
 
@@ -622,6 +679,7 @@
       const desde = $('perfil-desde').value;
       await api('POST', '/api/configuracion', { duracionTurno: minutos, desde });
       await cargarPerfil();
+      cerrarAjuste($('form-duracion'));
       $('perfil-aviso').textContent = `Listo: desde el ${fechaEsp(desde)} las reservas duran ${minutos} minutos.`;
     } catch (err) { mostrarError(err.message); }
   });
@@ -629,13 +687,14 @@
   $('form-horario').addEventListener('submit', async (e) => {
     e.preventDefault();
     mostrarError();
-    $('horario-aviso').textContent = '';
+    $('perfil-aviso').textContent = '';
     try {
       const desde = $('horario-desde').value;
       const hasta = $('horario-hasta').value;
       await api('POST', '/api/configuracion', { horario: { desde, hasta } });
       await cargarPerfil();
-      $('horario-aviso').textContent = `Listo: la agenda va de ${desde} a ${hasta}.`;
+      cerrarAjuste($('form-horario'));
+      $('perfil-aviso').textContent = `Listo: la agenda va de ${desde} a ${hasta}.`;
     } catch (err) { mostrarError(err.message); }
   });
 
