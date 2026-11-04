@@ -88,6 +88,18 @@
     .panel-comentarios[hidden] { display: none; }
     .panel-comentarios h3 { margin: 0 36px 6px 0; font-size: .95rem; }
     .panel-comentarios .panel-cerrar { position: absolute; top: 6px; right: 6px; }
+    .perfil-cabecera { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+    .iniciales-grandes { flex: none; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--pino); color: var(--papel); font-weight: 700; font-size: 1.05rem; }
+    .perfil-nombre { font-size: 1.15rem; font-weight: 650; }
+    .perfil-rol { color: var(--tinta-suave); font-size: .9rem; }
+    .perfil-tarjetas { display: grid; gap: 16px; margin-top: 16px; }
+    @media (min-width: 720px) { .perfil-tarjetas { grid-template-columns: 1fr 1fr; } }
+    .perfil-tarjeta { display: grid; gap: 12px; align-content: start; padding: 16px; border: 1px solid var(--linea); border-radius: 12px; }
+    .perfil-tarjeta h3 { margin: 0; }
+    .perfil-tarjeta p { margin: 0; }
+    .perfil-tarjeta form { display: grid; gap: 12px; }
+    .perfil-campos { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+    .perfil-campos label { display: grid; gap: 4px; }
     .lista li.comentario { display: grid; gap: 4px; }
     .lista li.comentario small { color: var(--tinta-suave); }
     .lista li.comentario button { justify-self: start; }
@@ -251,30 +263,44 @@
       </section>
 
       <section class="panel vista" data-vista="perfil" hidden>
-        <h2>Mi perfil</h2>
+        <div class="perfil-cabecera">
+          <span class="iniciales-grandes" id="perfil-iniciales" aria-hidden="true"></span>
+          <div>
+            <div class="perfil-nombre" id="perfil-nombre"></div>
+            <div class="perfil-rol" id="perfil-rol"></div>
+          </div>
+        </div>
         <dl class="datos">
-          <dt>Nombre</dt><dd id="perfil-nombre"></dd>
           <dt>Email</dt><dd id="perfil-email"></dd>
-          <dt>Perfil</dt><dd id="perfil-rol"></dd>
         </dl>
-        <h3>Duración de mis reservas</h3>
-        <form id="form-duracion" class="fila">
-          <label>Duración<select id="perfil-duracion" name="duracionTurno"></select></label>
-          <label>Rige desde<input type="date" id="perfil-desde" name="desde" required></label>
-          <button class="boton boton-primario">Guardar</button>
-        </form>
-        <p class="detalle" id="perfil-vigente"></p>
-        <p class="detalle">Desde esa fecha, las reservas nuevas duran lo elegido. Las ya reservadas quedan como están.</p>
-        <p class="aviso-ok" id="perfil-aviso"></p>
-        <ul class="lista" id="lista-duraciones"></ul>
-        <h3>Horario de la agenda</h3>
-        <form id="form-horario" class="fila">
-          <label>Desde<select id="horario-desde"></select></label>
-          <label>Hasta<select id="horario-hasta"></select></label>
-          <button class="boton boton-primario">Guardar horario</button>
-        </form>
-        <p class="detalle">Los turnos empiezan dentro de este horario y terminan antes de la hora de cierre. Vale para todos los días.</p>
-        <p class="aviso-ok" id="horario-aviso"></p>
+        <div class="perfil-tarjetas">
+          <article class="perfil-tarjeta">
+            <h3>Duración de mis reservas</h3>
+            <p class="detalle" id="perfil-vigente"></p>
+            <form id="form-duracion">
+              <div class="perfil-campos">
+                <label>Duración<select id="perfil-duracion" name="duracionTurno"></select></label>
+                <label>Rige desde<input type="date" id="perfil-desde" name="desde" required></label>
+              </div>
+              <button class="boton boton-primario">Guardar duración</button>
+            </form>
+            <p class="detalle">Desde esa fecha, las reservas nuevas duran lo elegido. Las ya reservadas quedan como están.</p>
+            <p class="aviso-ok" id="perfil-aviso"></p>
+            <ul class="lista" id="lista-duraciones"></ul>
+          </article>
+          <article class="perfil-tarjeta">
+            <h3>Horario de la agenda</h3>
+            <form id="form-horario">
+              <div class="perfil-campos">
+                <label>Desde<select id="horario-desde"></select></label>
+                <label>Hasta<select id="horario-hasta"></select></label>
+              </div>
+              <button class="boton boton-primario">Guardar horario</button>
+            </form>
+            <p class="detalle">Los turnos empiezan dentro de este horario y terminan antes de la hora de cierre. Vale para todos los días.</p>
+            <p class="aviso-ok" id="horario-aviso"></p>
+          </article>
+        </div>
       </section>
 
       <section class="panel vista" data-vista="profesionales" id="panel-admin" hidden>
@@ -428,6 +454,7 @@
     $('perfil-nombre').textContent = yo.nombre;
     $('perfil-email').textContent = yo.email;
     $('perfil-rol').textContent = yo.rol === 'admin' ? 'Administrador' : 'Profesional';
+    $('perfil-iniciales').textContent = $('iniciales').textContent;
     const c = await api('GET', '/api/configuracion');
     $('perfil-duracion').innerHTML = opcionesDuracion(c.duracionTurno);
     $('perfil-desde').min = fechaDesplazada(0);
@@ -448,7 +475,6 @@
       const minutos = Number($('perfil-duracion').value);
       const desde = $('perfil-desde').value;
       await api('POST', '/api/configuracion', { duracionTurno: minutos, desde });
-      $('perfil-aviso').textContent = `Listo: desde el ${fechaEsp(desde)} las reservas duran ${minutos} minutos.`;
       await cargarPerfil();
       $('perfil-aviso').textContent = `Listo: desde el ${fechaEsp(desde)} las reservas duran ${minutos} minutos.`;
     } catch (err) { mostrarError(err.message); }
