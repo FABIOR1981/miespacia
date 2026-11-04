@@ -92,6 +92,10 @@
     .panel-comentarios[hidden] { display: none; }
     .panel-comentarios h3 { margin: 0 36px 6px 0; font-size: .95rem; }
     .panel-comentarios .panel-cerrar { position: absolute; top: 6px; right: 6px; }
+    .campo-clave { position: relative; display: block; }
+    .campo-clave input { width: 100%; padding-right: 86px; box-sizing: border-box; }
+    .ver-clave { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); min-height: 32px; padding: 0 2px; border: 0; background: transparent; color: var(--pino); font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; }
+    .ver-clave:focus-visible { outline: 2px solid var(--tinta); outline-offset: 1px; }
     .perfil-cabecera { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
     .iniciales-grandes { flex: none; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--pino); color: var(--papel); font-weight: 700; font-size: 1.05rem; }
     .perfil-nombre { font-size: 1.15rem; font-weight: 650; }
@@ -232,7 +236,7 @@
           <p class="aviso" id="error-cancelar" hidden></p>
           <div class="hoja-acciones">
             <button class="boton boton-primario" type="button" id="confirmar-cancelacion-btn">Cancelar reserva</button>
-            <button class="boton boton-secundario" type="button" id="cerrar-cancelacion">Cerrar</button>
+            <button class="boton boton-secundario" type="button" id="cerrar-cancelacion">Volver</button>
           </div>
         </div>
       </dialog>
@@ -412,6 +416,26 @@
     `<option value="${m}" ${m === actual ? 'selected' : ''}>${m} minutos</option>`).join('');
 
   let yo = null;
+
+  // Botón para ver u ocultar lo escrito en los campos de clave.
+  document.querySelectorAll('input[type="password"]').forEach((input) => {
+    const envoltorio = document.createElement('span');
+    envoltorio.className = 'campo-clave';
+    input.replaceWith(envoltorio);
+    envoltorio.append(input);
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'ver-clave';
+    boton.textContent = 'Ver';
+    boton.setAttribute('aria-label', 'Mostrar clave');
+    boton.addEventListener('click', () => {
+      const mostrar = input.type === 'password';
+      input.type = mostrar ? 'text' : 'password';
+      boton.textContent = mostrar ? 'Ocultar' : 'Ver';
+      boton.setAttribute('aria-label', mostrar ? 'Ocultar clave' : 'Mostrar clave');
+    });
+    envoltorio.append(boton);
+  });
 
   // Cómo se llama a los clientes para este profesional (cliente o paciente, con su singular y plural).
   const ETIQUETAS = {
