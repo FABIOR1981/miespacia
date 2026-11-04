@@ -78,7 +78,8 @@
     .fila label { display: grid; gap: 4px; flex: 1 1 200px; font-size: .9rem; color: var(--tinta-suave); }
     .fila label input { flex: none; width: 100%; }
     .reserva-texto { display: grid; gap: 2px; min-width: 0; }
-    .reserva-acciones { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .reserva-cant { display: inline-flex; align-items: center; gap: 4px; color: var(--pino); font-size: 13px; }
+    .reserva-bloque[data-reserva] { cursor: pointer; }
     .lista li.comentario { display: grid; gap: 4px; }
     .lista li.comentario small { color: var(--tinta-suave); }
     .lista li.comentario button { justify-self: start; }
@@ -176,13 +177,17 @@
 
       <dialog class="hoja" id="modal-comentarios" aria-labelledby="titulo-comentarios">
         <header class="hoja-cabecera">
-          <h2 id="titulo-comentarios">Comentarios internos</h2>
+          <h2 id="titulo-comentarios">Reserva</h2>
           <button class="boton-icono" type="button" id="cerrar-comentarios" aria-label="Cerrar">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
           </button>
         </header>
         <div class="hoja-cuerpo">
           <p id="resumen-comentarios"></p>
+          <div class="hoja-acciones">
+            <button class="boton boton-secundario" type="button" id="cancelar-reserva">Cancelar reserva</button>
+          </div>
+          <h3>Comentarios internos</h3>
           <ul class="lista" id="lista-comentarios"></ul>
           <button class="boton boton-secundario" type="button" id="ver-todos-comentarios" hidden></button>
           <p class="aviso" id="error-comentarios" hidden></p>
@@ -626,14 +631,13 @@
         let k = j;
         while (k < fin && columnaDe(k) === c) k++;
         const primero = j === inicio;
+        const cant = (t.comentarios || []).length;
         const contenido = primero
           ? `<div class="reserva-texto"><strong>${escapar(t.clienteNombre || '')}</strong><span class="reserva-hora">${t.hora} – ${aHora(aMinutos(t.hora) + t.duracion)}</span></div>
-             <div class="reserva-acciones">
-               <button class="boton boton-secundario" data-comentarios="${t.id}">Comentarios${(t.comentarios || []).length ? ` (${t.comentarios.length})` : ''}</button>
-               <button class="boton boton-secundario" data-cancelar="${t.id}">Cancelar</button>
-             </div>`
+             ${cant ? `<span class="reserva-cant" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>${cant}</span>` : ''}`
           : '';
-        columnas[c].push(`<div class="reserva-bloque ${primero ? '' : 'continua'}" style="grid-row:${filaDe(j)} / span ${k - j}">${contenido}</div>`);
+        const atributos = primero ? `data-reserva="${t.id}" role="button" tabindex="0" aria-label="Ver reserva de ${escapar(t.clienteNombre || '')}, ${t.hora}${cant ? `, ${cant} comentarios` : ''}"` : '';
+        columnas[c].push(`<div class="reserva-bloque ${primero ? '' : 'continua'}" ${atributos} style="grid-row:${filaDe(j)} / span ${k - j}">${contenido}</div>`);
         j = k;
       }
     }
@@ -717,8 +721,21 @@
   }
 
   $('grilla').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-comentarios]');
-    if (b) abrirComentarios(b.dataset.comentarios);
+    const b = e.target.closest('[data-reserva]');
+    if (b) abrirComentarios(b.dataset.reserva);
+  });
+  $('grilla').addEventListener('keydown', (e) => {
+    const b = e.target.closest('[data-reserva]');
+    if (b && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); abrirComentarios(b.dataset.reserva); }
+  });
+
+  $('cancelar-reserva').addEventListener('click', async () => {
+    errorComentarios();
+    try {
+      await api('POST', agendaUrl(`/api/turnos/${comentandoId}/cancelar`));
+      $('modal-comentarios').close();
+      await dibujarGrilla();
+    } catch (err) { errorComentarios(err.message); }
   });
 
   $('ver-todos-comentarios').addEventListener('click', () => {
@@ -810,14 +827,9 @@
 
   $('grilla').addEventListener('click', async (e) => {
     const libre = e.target.closest('[data-hora]');
-    const cancelar = e.target.closest('[data-cancelar]');
     mostrarError();
     try {
       if (libre) abrirReserva(libre.dataset.hora);
-      if (cancelar) {
-        await api('POST', agendaUrl(`/api/turnos/${cancelar.dataset.cancelar}/cancelar`));
-        await dibujarGrilla();
-      }
     } catch (err) {
       if (err.estado === 404) {
         // El turno ya no está en el servidor: se actualiza la agenda para mostrar lo que hay.
