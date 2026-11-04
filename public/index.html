@@ -292,6 +292,16 @@
           <button class="boton boton-primario">Ver</button>
         </form>
         <ul class="lista" id="lista-cancelaciones"></ul>
+
+        <h2 data-plantilla="Reservas por {p}">Reservas por cliente</h2>
+        <p class="detalle">Todas las reservas de una persona en el período, incluidas las canceladas.</p>
+        <form id="form-reservas-cliente" class="fila">
+          <label><span data-plantilla="{S}">Cliente</span><select id="rc-cliente" required></select></label>
+          <label>Desde<input type="date" id="rc-desde" required></label>
+          <label>Hasta<input type="date" id="rc-hasta" required></label>
+          <button class="boton boton-primario">Ver</button>
+        </form>
+        <ul class="lista" id="lista-reservas-cliente"></ul>
       </section>
 
       <section class="panel vista" data-vista="clientes">
@@ -621,6 +631,7 @@
       $('seg-hasta').value = fechaDesplazada(0);
       $('seg-desde').value = sumarDias(fechaDesplazada(0), -30);
     }
+    await cargarReservasCliente();
     const lista = await api('GET', agendaUrl('/api/seguimiento/cancelaciones', { desde: $('seg-desde').value, hasta: $('seg-hasta').value }));
     $('lista-cancelaciones').innerHTML = lista.length
       ? lista.map((c) => `<li>
@@ -630,6 +641,33 @@
          </li>`).join('')
       : '<li class="detalle">No hay cancelaciones en este período.</li>';
   }
+
+  async function cargarReservasCliente() {
+    if (!$('rc-hasta').value) {
+      $('rc-hasta').value = fechaDesplazada(0);
+      $('rc-desde').value = sumarDias(fechaDesplazada(0), -30);
+    }
+    const elegido = $('rc-cliente').value;
+    const lista = await api('GET', agendaUrl('/api/clientes'));
+    $('rc-cliente').innerHTML = lista.map((c) => `<option value="${c.id}">${escapar(c.nombre)}${c.activo === false ? ' (dado de baja)' : ''}</option>`).join('');
+    if (elegido) $('rc-cliente').value = elegido;
+    if (!$('rc-cliente').value) return;
+    const datos = await api('GET', agendaUrl('/api/seguimiento/reservas', {
+      cliente: $('rc-cliente').value, desde: $('rc-desde').value, hasta: $('rc-hasta').value,
+    }));
+    $('lista-reservas-cliente').innerHTML = datos.reservas.length
+      ? datos.reservas.map((r) => `<li class="${r.cancelado ? 'inactivo' : ''}">
+           <span><strong>${fechaEsp(r.fecha)} ${r.hora}</strong> · ${r.duracion} minutos</span>
+           <small>${r.cancelado ? `Cancelada${r.motivo ? ': ' + escapar(r.motivo) : ''}` : 'Reservada'}</small>
+         </li>`).join('')
+      : '<li class="detalle">No hay reservas en este período.</li>';
+  }
+
+  $('form-reservas-cliente').addEventListener('submit', (e) => {
+    e.preventDefault();
+    mostrarError();
+    cargarReservasCliente().catch((err) => mostrarError(err.message));
+  });
 
   $('form-seguimiento').addEventListener('submit', (e) => {
     e.preventDefault();

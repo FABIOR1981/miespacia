@@ -237,6 +237,31 @@ function crearAgenda(persistencia) {
       return cancelado;
     },
 
+    /** Todas las reservas de un cliente cuya fecha cae entre desde y hasta (canceladas incluidas). */
+    async listarReservasDeCliente(profesionalId, clienteId, desde, hasta) {
+      validarFecha(desde);
+      validarFecha(hasta);
+      if (desde > hasta) throw new ErrorDeNegocio('"desde" no puede ser posterior a "hasta"');
+      const cliente = await clientes.obtener(profesionalId, Number(clienteId));
+      if (!cliente) throw new ErrorDeNegocio('El cliente no existe', 404);
+      const lista = await turnos.listarRango(profesionalId, desde, hasta);
+      return {
+        clienteNombre: cliente.nombre,
+        reservas: lista
+          .filter((t) => t.clienteId === cliente.id)
+          .sort((x, y) => (x.fecha + x.hora).localeCompare(y.fecha + y.hora))
+          .map((t) => ({
+            id: t.id,
+            fecha: t.fecha,
+            hora: t.hora,
+            duracion: t.duracion,
+            cancelado: Boolean(t.cancelado),
+            motivo: t.cancelacion?.motivo ?? '',
+            por: t.cancelacion?.por ?? '',
+          })),
+      };
+    },
+
     /** Reservas canceladas cuya fecha de cancelación cae entre desde y hasta (en Montevideo). */
     async listarCancelaciones(profesionalId, desde, hasta) {
       validarFecha(desde);
