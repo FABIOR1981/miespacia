@@ -17,6 +17,7 @@ class ErrorDeNegocio extends Error {
 }
 
 const DURACION_POR_DEFECTO = 60;
+const HORARIO_POR_DEFECTO = { desde: '08:00', hasta: '21:00' };
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -58,6 +59,17 @@ function duracionVigente(cuenta, fecha) {
   return aplicables.sort((a, b) => a.desde.localeCompare(b.desde)).at(-1).minutos;
 }
 
+function horarioVigente(cuenta) {
+  return cuenta?.horario ?? HORARIO_POR_DEFECTO;
+}
+
+function validarHorario(desde, hasta) {
+  const d = validarHora(desde);
+  const h = validarHora(hasta);
+  if (aMinutos(d) >= aMinutos(h)) throw new ErrorDeNegocio('El horario tiene que empezar antes de terminar');
+  return { desde: d, hasta: h };
+}
+
 function aMinutos(hora) {
   const [h, m] = String(hora).split(':').map(Number);
   return h * 60 + m;
@@ -75,6 +87,7 @@ function crearAgenda(persistencia) {
     return {
       duracionTurno: duracionVigente(cuenta, fechaLocal()),
       historial: [...(cuenta.duraciones ?? [])].sort((a, b) => b.desde.localeCompare(a.desde)),
+      horario: horarioVigente(cuenta),
     };
   }
 
@@ -115,6 +128,15 @@ function crearAgenda(persistencia) {
       return configuracionDe(profesionalId);
     },
 
+    /** Horario de la agenda: desde y hasta (HH:MM). Los turnos empiezan dentro de ese rango y terminan antes de `hasta`. */
+    async cambiarHorario(profesionalId, desde, hasta) {
+      const horario = validarHorario(desde, hasta);
+      const cuenta = await profesionales.obtener(profesionalId);
+      if (!cuenta) throw new ErrorDeNegocio('El profesional no existe', 404);
+      await profesionales.actualizar(profesionalId, { horario });
+      return configuracionDe(profesionalId);
+    },
+
     async agendarTurno(profesionalId, datos = {}) {
       const fecha = validarFecha(datos.fecha);
       const hora = validarHora(datos.hora);
@@ -122,9 +144,15 @@ function crearAgenda(persistencia) {
       const cliente = await clientes.obtener(profesionalId, Number(datos.clienteId));
       if (!cliente) throw new ErrorDeNegocio('El cliente no existe', 404);
 
-      const duracion = duracionVigente(await profesionales.obtener(profesionalId), fecha);
+      const cuenta = await profesionales.obtener(profesionalId);
+      const duracion = duracionVigente(cuenta, fecha);
+      const { desde, hasta } = horarioVigente(cuenta);
       const inicio = aMinutos(hora);
       const fin = inicio + duracion;
+      if (inicio < aMinutos(desde) || inicio >= aMinutos(hasta)) {
+        throw new ErrorDeNegocio(`Los turnos empiezan entre ${desde} y ${hasta}`);
+      }
+      if (fin > aMinutos(hasta)) throw new ErrorDeNegocio(`El turno tiene que terminar antes de las ${hasta}`);
 
       const delDia = await turnos.listarRango(profesionalId, fecha, fecha);
       const choca = delDia.some((t) => {
