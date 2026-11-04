@@ -187,7 +187,7 @@ dialog.hoja::backdrop { background: var(--telon); }
 /* Elección de colores en «Mi cuenta» */
 .paleta-selector { margin-top: 18px; display: grid; gap: 8px; }
 .paleta-titulo { margin: 0; font-weight: 600; font-size: .92rem; }
-.paleta-opciones { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.paleta-opciones { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .paleta-opcion {
   display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 10px;
   background: var(--papel); border: 1.5px solid var(--linea-fuerte); border-radius: var(--radio-campo);
@@ -410,7 +410,7 @@ body.fecha-en-barra .barra-fecha { display: inline-flex; animation: hoja-entra .
 /* Selector de colores (Mi perfil) */
 .paleta-selector { margin-top: 18px; display: grid; gap: 8px; }
 .paleta-titulo { margin: 0; font-weight: 600; font-size: .92rem; }
-.paleta-opciones { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.paleta-opciones { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .paleta-opcion {
   display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--linea-fuerte);
   border-radius: 10px; background: var(--papel, #fff); color: var(--tinta); font: inherit; font-size: .9rem; cursor: pointer; text-align: left;
@@ -433,3 +433,8 @@ body.fecha-en-barra .barra-fecha { display: inline-flex; animation: hoja-entra .
 .informe-opcion-titulo { font-size: 1.05rem; font-weight: 650; }
 .informe-opcion-texto { color: var(--tinta-suave); font-size: .92rem; }
 .informe-volver { margin: 0 0 8px -8px; }
+
+/* Celular: cuatro por fila, con el color arriba y el nombre debajo para que quepan. */
+@media (max-width: 560px) {
+  .paleta-opcion { flex-direction: column; gap: 6px; padding: 8px 4px; font-size: .8rem; text-align: center; min-width: 0; overflow-wrap: anywhere; }
+}
