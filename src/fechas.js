@@ -8,4 +8,9 @@ function fechaLocal(desplazamientoDias = 0) {
   return formato.format(new Date(Date.now() + desplazamientoDias * 86400000));
 }
 
-module.exports = { fechaLocal };
+/** Fecha 'AAAA-MM-DD' en Montevideo de un instante ISO. */
+function fechaDeInstante(iso) {
+  return formato.format(new Date(iso));
+}
+
+module.exports = { fechaLocal, fechaDeInstante };

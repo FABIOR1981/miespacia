@@ -134,3 +134,25 @@ test('cada profesional elige cómo llama a sus clientes: cliente o paciente', as
   assert.equal(cfg.etiquetaClientes, 'paciente');
   await assert.rejects(a.cambiarEtiquetaClientes(cuenta.id, 'usuario'), /cliente o paciente/);
 });
+
+test('al cancelar se puede dejar un motivo; el informe de cancelaciones lo muestra por fecha de cancelación', async () => {
+  const { fechaLocal } = require('../src/fechas');
+  const persistencia = crearPersistencia({ modo: 'memoria' });
+  const cuenta = await persistencia.profesionales.crear({ email: 'c@t.test', usuario: 'cancel', nombre: 'C', rol: 'profesional' });
+  const a = crearAgenda(persistencia);
+  const c = await a.crearCliente(cuenta.id, { nombre: 'Ana' });
+  const sinMotivo = await a.agendarTurno(cuenta.id, { clienteId: c.id, fecha: '2026-11-20', hora: '10:00' });
+  const conMotivo = await a.agendarTurno(cuenta.id, { clienteId: c.id, fecha: '2026-11-21', hora: '11:00' });
+
+  await a.cancelarTurno(cuenta.id, sinMotivo.id, { autor: 'C' });
+  await a.cancelarTurno(cuenta.id, conMotivo.id, { motivo: '  Avisó que no puede  ', autor: 'C' });
+  await assert.rejects(a.cancelarTurno(cuenta.id, sinMotivo.id, { motivo: 'x'.repeat(301) }), /300/);
+
+  const hoy = fechaLocal();
+  const lista = await a.listarCancelaciones(cuenta.id, hoy, hoy);
+  assert.equal(lista.length, 2);
+  const motivos = lista.map((x) => x.motivo).sort();
+  assert.deepEqual(motivos, ['', 'Avisó que no puede']);
+  assert.equal(lista[0].clienteNombre, 'Ana');
+  assert.deepEqual(await a.listarCancelaciones(cuenta.id, '2020-01-01', '2020-01-02'), []);
+});

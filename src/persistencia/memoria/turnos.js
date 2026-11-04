@@ -37,10 +37,10 @@ function crearTurnosEnMemoria() {
       return copia(nuevo);
     },
 
-    cancelar: async (profesionalId, id) => {
+    cancelar: async (profesionalId, id, extra = {}) => {
       const t = registros.find((x) => x.id === id && x.profesionalId === profesionalId);
       if (!t) return null;
-      t.cancelado = true;
+      Object.assign(t, copia(extra), { cancelado: true });
       return copia(t);
     },
 
