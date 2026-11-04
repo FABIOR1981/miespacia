@@ -45,6 +45,38 @@
   --sobre-tinta: #C6D6CB; --sobre-tinta-tenue: #9FB5A6; --nav-texto: #D3E0D7; --hoy-punto: #8FD0A3;
 }
 
+/* Menta */
+:root[data-paleta="menta"] {
+  --tinta: #2F4A44; --tinta-suave: #5F7A73; --bruma: #F1F8F5; --linea: #D3E6DE; --linea-fuerte: #A9CFC2;
+  --pino: #3E8C77; --pino-oscuro: #2F7062; --pino-claro: #E1F2EC;
+  --ocupado-fondo: #E6EFEB; --ocupado-raya: #D5E2DC; --ocupado-texto: #506A63;
+  --sobre-tinta: #C4DDD4; --sobre-tinta-tenue: #9CBFB2; --nav-texto: #D3E9E1; --hoy-punto: #7FD1B5;
+}
+
+/* Lavanda */
+:root[data-paleta="lavanda"] {
+  --tinta: #3D3558; --tinta-suave: #6B6287; --bruma: #F5F3FB; --linea: #DEDAEE; --linea-fuerte: #BDB5DA;
+  --pino: #7C68B5; --pino-oscuro: #634F9C; --pino-claro: #ECE8F8;
+  --ocupado-fondo: #E9E6F2; --ocupado-raya: #DCD7EA; --ocupado-texto: #5B5478;
+  --sobre-tinta: #CFC6E8; --sobre-tinta-tenue: #A99DCB; --nav-texto: #DDD6F0; --hoy-punto: #B8A8F0;
+}
+
+/* Durazno */
+:root[data-paleta="durazno"] {
+  --tinta: #4A3328; --tinta-suave: #7A5E53; --bruma: #FCF4EF; --linea: #F0DDD3; --linea-fuerte: #DDBFB1;
+  --pino: #B85C3D; --pino-oscuro: #9E4A2E; --pino-claro: #FBE7DE;
+  --ocupado-fondo: #F3E9E3; --ocupado-raya: #EADAD1; --ocupado-texto: #6E5649;
+  --sobre-tinta: #E8CDBF; --sobre-tinta-tenue: #C9A593; --nav-texto: #EFDCD1; --hoy-punto: #F4A384;
+}
+
+/* Celeste */
+:root[data-paleta="celeste"] {
+  --tinta: #2C4459; --tinta-suave: #5A7088; --bruma: #F1F7FC; --linea: #D5E4F1; --linea-fuerte: #AEC9E0;
+  --pino: #3D7FB3; --pino-oscuro: #2D6594; --pino-claro: #E0EEF9;
+  --ocupado-fondo: #E4EDF5; --ocupado-raya: #D3E0EC; --ocupado-texto: #4E6478;
+  --sobre-tinta: #C2D8EA; --sobre-tinta-tenue: #98B7D1; --nav-texto: #D2E3F1; --hoy-punto: #7DB8EA;
+}
+
 /* Oscuro: fondo casi negro, superficies gris petróleo y textos claros. Solo en pantalla: al imprimir queda la versión clara. */
 @media screen {
   :root[data-paleta="oscuro"] {
