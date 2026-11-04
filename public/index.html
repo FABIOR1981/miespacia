@@ -461,6 +461,7 @@
                 <label>Nombre<select id="perfil-etiqueta">
                   <option value="cliente">Cliente / Clientes</option>
                   <option value="paciente">Paciente / Pacientes</option>
+                  <option value="empresa">Empresa / Empresas</option>
                 </select></label>
               </div>
               <div class="hoja-acciones">
@@ -578,10 +579,11 @@
     envoltorio.append(boton);
   });
 
-  // Cómo se llama a los clientes para este profesional (cliente o paciente, con su singular y plural).
+  // Cómo se llama a los clientes para este profesional (cliente, paciente o empresa, con su singular y plural).
   const ETIQUETAS = {
     cliente: { s: 'cliente', p: 'clientes', S: 'Cliente', P: 'Clientes' },
     paciente: { s: 'paciente', p: 'pacientes', S: 'Paciente', P: 'Pacientes' },
+    empresa: { s: 'empresa', p: 'empresas', S: 'Empresa', P: 'Empresas' },
   };
   let etiqueta = 'cliente';
 

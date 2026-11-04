@@ -79,7 +79,7 @@ function aMinutos(hora) {
  * @param {{ profesionales: object, clientes: object, turnos: object }} persistencia la interfaz de persistencia
  */
 // Cómo llama cada profesional a sus clientes en la interfaz.
-const ETIQUETAS_CLIENTES = ['cliente', 'paciente'];
+const ETIQUETAS_CLIENTES = ['cliente', 'paciente', 'empresa'];
 
 /** Id incremental dentro de una lista (1, 2, 3...). Un id que se quitó no se vuelve a usar en esa lista. */
 function siguienteId(lista) {
@@ -192,7 +192,7 @@ function crearAgenda(persistencia) {
     },
 
     async cambiarEtiquetaClientes(profesionalId, valor) {
-      if (!ETIQUETAS_CLIENTES.includes(valor)) throw new ErrorDeNegocio('Elegí cliente o paciente', 400);
+      if (!ETIQUETAS_CLIENTES.includes(valor)) throw new ErrorDeNegocio('Elegí cliente, paciente o empresa', 400);
       const cuenta = await profesionales.obtener(profesionalId);
       if (!cuenta) throw new ErrorDeNegocio('El profesional no existe', 404);
       await profesionales.actualizar(profesionalId, { etiquetaClientes: valor });

@@ -125,14 +125,15 @@ test('los comentarios se agregan y quitan de una reserva, con un máximo de 500 
   assert.equal(t.comentarios.length, 0);
 });
 
-test('cada profesional elige cómo llama a sus clientes: cliente o paciente', async () => {
+test('cada profesional elige cómo llama a sus clientes: cliente, paciente o empresa', async () => {
   const persistencia = crearPersistencia({ modo: 'memoria' });
   const cuenta = await persistencia.profesionales.crear({ email: 'e@t.test', nombre: 'E', rol: 'profesional' });
   const a = crearAgenda(persistencia);
   assert.equal((await a.obtenerConfiguracion(cuenta.id)).etiquetaClientes, 'cliente');
   const cfg = await a.cambiarEtiquetaClientes(cuenta.id, 'paciente');
   assert.equal(cfg.etiquetaClientes, 'paciente');
-  await assert.rejects(a.cambiarEtiquetaClientes(cuenta.id, 'usuario'), /cliente o paciente/);
+  assert.equal((await a.cambiarEtiquetaClientes(cuenta.id, 'empresa')).etiquetaClientes, 'empresa');
+  await assert.rejects(a.cambiarEtiquetaClientes(cuenta.id, 'usuario'), /cliente, paciente o empresa/);
 });
 
 test('al cancelar se puede dejar un motivo; el informe de cancelaciones lo muestra por fecha de cancelación', async () => {
