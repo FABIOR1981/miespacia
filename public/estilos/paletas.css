@@ -7,50 +7,50 @@
 
 /* Océano */
 :root[data-paleta="oceano"] {
-  --tinta: #2E4A66; --tinta-suave: #5E7A96; --bruma: #F0F5FA; --linea: #D6E2EE; --linea-fuerte: #B0C6DC;
-  --pino: #3F6F9E; --pino-oscuro: #2F5A86; --pino-claro: #E3EEF8;
-  --ocupado-fondo: #E4ECF4; --ocupado-raya: #D4DFEA; --ocupado-texto: #4D6480;
-  --sobre-tinta: #C5D7EA; --sobre-tinta-tenue: #9DB8D3; --nav-texto: #D5E4F2; --hoy-punto: #8DBDEB;
+  --tinta: #15294A; --tinta-suave: #3A5A85; --bruma: #EEF5FF; --linea: #CDE0F8; --linea-fuerte: #A3C5EE;
+  --pino: #1F6FD1; --pino-oscuro: #1758AC; --pino-claro: #DCEAFB;
+  --ocupado-fondo: #DCE7F7; --ocupado-raya: #C8D4E6; --ocupado-texto: #2F4D75;
+  --sobre-tinta: #AAC8EE; --sobre-tinta-tenue: #7DABE4; --nav-texto: #CFE2FA; --hoy-punto: #8FB7E8;
 }
 
 /* Arcilla */
 :root[data-paleta="terracota"] {
-  --tinta: #5A3A2E; --tinta-suave: #8A6B5E; --bruma: #FBF5F2; --linea: #EEDFD7; --linea-fuerte: #DBC3B6;
-  --pino: #A8654A; --pino-oscuro: #8E5139; --pino-claro: #F9EBE4;
-  --ocupado-fondo: #F3EBE6; --ocupado-raya: #E9DDD5; --ocupado-texto: #74584B;
-  --sobre-tinta: #E8D2C5; --sobre-tinta-tenue: #CCAA99; --nav-texto: #F0E0D6; --hoy-punto: #F2B49A;
+  --tinta: #4A1F12; --tinta-suave: #83422F; --bruma: #FFF3EC; --linea: #F4D7CD; --linea-fuerte: #E6B5A6;
+  --pino: #B9462A; --pino-oscuro: #9A3519; --pino-claro: #FFE3D6;
+  --ocupado-fondo: #F7DED3; --ocupado-raya: #E6CBC0; --ocupado-texto: #7A3B27;
+  --sobre-tinta: #E4B9AE; --sobre-tinta-tenue: #D69483; --nav-texto: #FBD9C7; --hoy-punto: #DCA294;
 }
 
 /* Menta */
 :root[data-paleta="menta"] {
-  --tinta: #34504A; --tinta-suave: #66817A; --bruma: #F3FAF7; --linea: #DAEBE4; --linea-fuerte: #BDDBCF;
-  --pino: #3E8C77; --pino-oscuro: #2F7062; --pino-claro: #E4F5EF;
-  --ocupado-fondo: #E6F0EB; --ocupado-raya: #D8E7E0; --ocupado-texto: #537069;
-  --sobre-tinta: #C9E3D8; --sobre-tinta-tenue: #A1CBBB; --nav-texto: #D5EBE2; --hoy-punto: #8FDDC2;
+  --tinta: #0E3B31; --tinta-suave: #2D6A5B; --bruma: #EAFAF4; --linea: #C6E6DD; --linea-fuerte: #9ACDC0;
+  --pino: #0B7D63; --pino-oscuro: #086650; --pino-claro: #D2F5EA;
+  --ocupado-fondo: #D6F0E6; --ocupado-raya: #C2DED4; --ocupado-texto: #225B4C;
+  --sobre-tinta: #A2CEC4; --sobre-tinta-tenue: #71B4A5; --nav-texto: #C8F0E1; --hoy-punto: #85BEB1;
 }
 
 /* Lavanda */
 :root[data-paleta="lavanda"] {
-  --tinta: #3F3960; --tinta-suave: #6F6A90; --bruma: #F7F6FC; --linea: #E2DFF0; --linea-fuerte: #C8C2E3;
-  --pino: #6E5CAE; --pino-oscuro: #5A4A96; --pino-claro: #EFECFA;
-  --ocupado-fondo: #EBE9F4; --ocupado-raya: #DEDBEE; --ocupado-texto: #5E5884;
-  --sobre-tinta: #D3CCEB; --sobre-tinta-tenue: #B2A8D6; --nav-texto: #E0DCF2; --hoy-punto: #C1B3F5;
+  --tinta: #2A1B4D; --tinta-suave: #564486; --bruma: #F5F0FF; --linea: #DFD4F5; --linea-fuerte: #C3B0E9;
+  --pino: #6B3FC2; --pino-oscuro: #532FA0; --pino-claro: #E9DDFF;
+  --ocupado-fondo: #E4DAF7; --ocupado-raya: #D1C7E6; --ocupado-texto: #4A3A7A;
+  --sobre-tinta: #C7B6E8; --sobre-tinta-tenue: #A990DC; --nav-texto: #E0D2FA; --hoy-punto: #B59FE0;
 }
 
 /* Bordó */
 :root[data-paleta="bordo"] {
-  --tinta: #40222B; --tinta-suave: #7D5A63; --bruma: #FBF3F5; --linea: #EEDCE2; --linea-fuerte: #D7BAC3;
-  --pino: #8E3B56; --pino-oscuro: #74304A; --pino-claro: #F6E6EB;
-  --ocupado-fondo: #F1E8EB; --ocupado-raya: #E4D6DB; --ocupado-texto: #6B4A54;
-  --sobre-tinta: #E4CCD4; --sobre-tinta-tenue: #C9A3AF; --nav-texto: #EBD5DC; --hoy-punto: #E88CA6;
+  --tinta: #3D0E1F; --tinta-suave: #82344F; --bruma: #FFF0F4; --linea: #F0CDD7; --linea-fuerte: #DEA2B3;
+  --pino: #A3173F; --pino-oscuro: #7F1030; --pino-claro: #FFDDE5;
+  --ocupado-fondo: #F7D9E2; --ocupado-raya: #E4C5CE; --ocupado-texto: #6E2440;
+  --sobre-tinta: #DCA7B6; --sobre-tinta-tenue: #CA7890; --nav-texto: #FBD0DC; --hoy-punto: #D18B9F;
 }
 
 /* Pizarra */
 :root[data-paleta="pizarra"] {
-  --tinta: #263443; --tinta-suave: #5D6E80; --bruma: #F1F5F8; --linea: #DBE3EA; --linea-fuerte: #BCC9D5;
-  --pino: #4E6E8E; --pino-oscuro: #3F5C78; --pino-claro: #E4EBF2;
-  --ocupado-fondo: #E6ECF1; --ocupado-raya: #D5DEE7; --ocupado-texto: #4B5C6E;
-  --sobre-tinta: #CCD7E2; --sobre-tinta-tenue: #A7B8C9; --nav-texto: #D8E2EC; --hoy-punto: #8FB3D6;
+  --tinta: #1F2050; --tinta-suave: #4D4F94; --bruma: #F1F1FD; --linea: #D6D7F4; --linea-fuerte: #B5B7E8;
+  --pino: #4B4FC4; --pino-oscuro: #3A3DA8; --pino-claro: #E2E2FF;
+  --ocupado-fondo: #E1E2F7; --ocupado-raya: #CECFE6; --ocupado-texto: #3E4190;
+  --sobre-tinta: #BBBCE9; --sobre-tinta-tenue: #9799DD; --nav-texto: #DADBFA; --hoy-punto: #A5A7E2;
 }
 
 /* Oscuro: fondo casi negro, superficies gris petróleo y textos claros. Solo en pantalla: al imprimir queda la versión clara. */
