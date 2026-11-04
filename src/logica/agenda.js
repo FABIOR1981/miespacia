@@ -7,6 +7,8 @@
  * (60 minutos por defecto, entre 30 y 240 de a 30) y no se pueden superponer.
  */
 
+const { fechaLocal } = require('../fechas');
+
 class ErrorDeNegocio extends Error {
   constructor(mensaje, estado = 400) {
     super(mensaje);
@@ -46,6 +48,16 @@ function validarDuracion(duracion) {
   return n;
 }
 
+/**
+ * Duración que rige para una fecha: la del cambio más reciente que empiece en esa fecha o antes.
+ * Los turnos guardan su propia duración, así que un cambio no toca los que ya existen.
+ */
+function duracionVigente(cuenta, fecha) {
+  const aplicables = (cuenta?.duraciones ?? []).filter((d) => d.desde <= fecha);
+  if (!aplicables.length) return DURACION_POR_DEFECTO;
+  return aplicables.sort((a, b) => a.desde.localeCompare(b.desde)).at(-1).minutos;
+}
+
 function aMinutos(hora) {
   const [h, m] = String(hora).split(':').map(Number);
   return h * 60 + m;
@@ -57,9 +69,13 @@ function aMinutos(hora) {
 function crearAgenda(persistencia) {
   const { profesionales, clientes, turnos } = persistencia;
 
-  async function duracionDe(profesionalId) {
+  async function configuracionDe(profesionalId) {
     const cuenta = await profesionales.obtener(profesionalId);
-    return cuenta?.duracionTurno ?? DURACION_POR_DEFECTO;
+    if (!cuenta) throw new ErrorDeNegocio('El profesional no existe', 404);
+    return {
+      duracionTurno: duracionVigente(cuenta, fechaLocal()),
+      historial: [...(cuenta.duraciones ?? [])].sort((a, b) => b.desde.localeCompare(a.desde)),
+    };
   }
 
   return {
@@ -83,13 +99,20 @@ function crearAgenda(persistencia) {
     },
 
     async obtenerConfiguracion(profesionalId) {
-      return { duracionTurno: await duracionDe(profesionalId) };
+      return configuracionDe(profesionalId);
     },
 
-    async cambiarDuracion(profesionalId, duracion) {
-      const cuenta = await profesionales.actualizar(profesionalId, { duracionTurno: validarDuracion(duracion) });
+    /** Desde `desde` (AAAA-MM-DD, por defecto hoy) los turnos nuevos duran `duracion` minutos. */
+    async cambiarDuracion(profesionalId, duracion, desde = fechaLocal()) {
+      const minutos = validarDuracion(duracion);
+      validarFecha(desde);
+      if (desde < fechaLocal()) throw new ErrorDeNegocio('La duración no puede regir desde una fecha pasada');
+      const cuenta = await profesionales.obtener(profesionalId);
       if (!cuenta) throw new ErrorDeNegocio('El profesional no existe', 404);
-      return { duracionTurno: cuenta.duracionTurno };
+      const historial = (cuenta.duraciones ?? []).filter((d) => d.desde !== desde);
+      historial.push({ desde, minutos });
+      await profesionales.actualizar(profesionalId, { duraciones: historial });
+      return configuracionDe(profesionalId);
     },
 
     async agendarTurno(profesionalId, datos = {}) {
@@ -99,7 +122,7 @@ function crearAgenda(persistencia) {
       const cliente = await clientes.obtener(profesionalId, Number(datos.clienteId));
       if (!cliente) throw new ErrorDeNegocio('El cliente no existe', 404);
 
-      const duracion = await duracionDe(profesionalId);
+      const duracion = duracionVigente(await profesionales.obtener(profesionalId), fecha);
       const inicio = aMinutos(hora);
       const fin = inicio + duracion;
 
@@ -124,4 +147,4 @@ function crearAgenda(persistencia) {
   };
 }
 
-module.exports = { crearAgenda, ErrorDeNegocio };
+module.exports = { crearAgenda, ErrorDeNegocio, duracionVigente };
