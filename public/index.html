@@ -35,6 +35,12 @@
     @media (max-width: 640px) {
       .barra { gap: 8px; padding: 0 12px; }
       .nav-principal button { padding: 6px 8px; font-size: .88rem; }
+      /* Celular: la navegación va fija al pie, como en el repo base */
+      .nav-principal { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; margin: 0; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; height: calc(64px + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--papel, #fff); border-top: 1px solid var(--linea); }
+      .nav-principal button { display: grid; place-items: center; border-radius: 0; background: transparent; color: var(--tinta-suave); font-size: .8rem; font-weight: 600; padding: 8px 4px; }
+      .nav-principal button:hover { background: transparent; color: var(--pino-oscuro); }
+      .nav-principal button[aria-current="page"] { background: transparent; color: var(--pino-oscuro); box-shadow: inset 0 3px 0 var(--pino); }
+      .contenido { padding-bottom: 96px; }
       .cuenta-boton .texto { display: none; }
     }
     .contenido > * { min-width: 0; }
@@ -69,6 +75,7 @@
     .reserva-bloque { position: relative; grid-column: 2; align-self: stretch; margin: 3px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--pino-claro); border-left: 4px solid var(--pino); border-radius: 10px; padding: 4px 12px; color: var(--tinta); }
     .cancelados { font-size: .9rem; color: var(--tinta-suave); }
     .panel { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio-tarjeta); padding: 16px; display: grid; gap: 10px; }
+    @media (max-width: 760px) { .motivo-lugar { display: none; } }
     #form-ingreso { display: grid; gap: 14px; }
     #form-ingreso label { display: grid; gap: 6px; }
     .panel h2 { margin: 0; font-size: 1.05rem; color: var(--tinta); }
@@ -169,6 +176,7 @@
         <div>
           <h1 class="ingreso-titular">Tu agenda, a tu medida.</h1>
           <p class="ingreso-bajada">Tus clientes, tus horarios y tus reservas, en un solo lugar.</p>
+          <div class="motivo-lugar"></div>
         </div>
       </section>
       <section class="ingreso-formulario">
@@ -728,6 +736,75 @@
     mostrarError();
     cargarCancelaciones().catch((err) => mostrarError(err.message));
   });
+
+  // Grilla animada del panel de ingreso (como en el repo base): los bloques se van corriendo de lugar.
+  const MOTIVO_COLUMNAS = 16, MOTIVO_FILAS = 6;
+  const BLOQUES_MOTIVO = [
+    [1, 1, 3, 1, 'o'], [5, 1, 2, 1, 'p'], [8, 1, 3, 1, 'o'], [2, 2, 2, 1, 'p'], [4, 2, 3, 1, 'o'],
+    [1, 3, 2, 1, 'o'], [4, 3, 2, 1, 'p'], [7, 3, 4, 1, 'o'], [3, 4, 3, 1, 'o'], [7, 4, 2, 1, 'o'], [9, 4, 2, 1, 'o'],
+    [1, 5, 2, 1, 'p'], [4, 5, 2, 1, 'o'], [6, 5, 2, 1, 'o'], [9, 5, 2, 1, 'o'],
+    [12, 2, 2, 1, 'o'], [15, 2, 2, 1, 'p'], [11, 4, 2, 1, 'o'], [14, 5, 3, 1, 'o'],
+    [3, 6, 3, 1, 'p'], [10, 6, 2, 1, 'o'], [14, 6, 2, 1, 'o'],
+  ];
+  const ubicarBloque = (b) => { b.nodo.style.gridColumn = `${b.columna} / span ${b.ancho}`; b.nodo.style.gridRow = `${b.fila} / span ${b.alto}`; };
+  const lugaresLibres = (b, todos) => {
+    const out = [];
+    for (let c = 1; c <= MOTIVO_COLUMNAS - b.ancho + 1; c++) {
+      for (let f = 1; f <= MOTIVO_FILAS - b.alto + 1; f++) {
+        if (c === b.columna && f === b.fila) continue;
+        const choca = todos.some((o) => o !== b && c < o.columna + o.ancho && o.columna < c + b.ancho && f < o.fila + o.alto && o.fila < f + b.alto);
+        if (!choca) out.push({ columna: c, fila: f });
+      }
+    }
+    return out;
+  };
+  function moverUnBloque(bloques) {
+    const verdes = bloques.filter((b) => b.tipo === 'p');
+    const candidatos = Math.random() < 0.7 ? verdes : bloques;
+    for (const b of [...candidatos].sort(() => Math.random() - 0.5)) {
+      const lugares = lugaresLibres(b, bloques);
+      if (!lugares.length) continue;
+      const distancia = (a) => Math.abs(a.columna - b.columna) + Math.abs(a.fila - b.fila);
+      const lejanos = lugares.filter((l) => distancia(l) >= 2);
+      const posibles = lejanos.length ? lejanos : lugares;
+      const destino = posibles[Math.floor(Math.random() * posibles.length)];
+      const antes = b.nodo.getBoundingClientRect();
+      b.columna = destino.columna; b.fila = destino.fila;
+      ubicarBloque(b);
+      const despues = b.nodo.getBoundingClientRect();
+      const deslizar = b.nodo.animate(
+        [{ transform: `translate(${antes.left - despues.left}px, ${antes.top - despues.top}px)` }, { transform: 'translate(0, 0)' }],
+        { duration: 600, easing: 'cubic-bezier(.3, 0, .2, 1)' }
+      );
+      deslizar.onfinish = () => b.nodo.animate(
+        [{ filter: 'brightness(1)' }, { filter: 'brightness(1.9)', offset: 0.3 }, { filter: 'brightness(1)' }],
+        { duration: 700, easing: 'ease-out' }
+      );
+      return;
+    }
+  }
+  function iniciarMotivo() {
+    const lugar = document.querySelector('.motivo-lugar');
+    if (!lugar) return;
+    const motivo = document.createElement('div');
+    motivo.className = 'motivo';
+    motivo.setAttribute('aria-hidden', 'true');
+    motivo.style.gridTemplateColumns = `repeat(${MOTIVO_COLUMNAS}, 1fr)`;
+    motivo.style.gridTemplateRows = `repeat(${MOTIVO_FILAS}, 1fr)`;
+    motivo.style.aspectRatio = `${MOTIVO_COLUMNAS} / ${MOTIVO_FILAS}`;
+    const bloques = BLOQUES_MOTIVO.map(([columna, fila, ancho, alto, tipo]) => {
+      const nodo = document.createElement('span');
+      nodo.className = tipo === 'p' ? 'm-propio' : 'm-ocupado';
+      const b = { nodo, columna, fila, ancho, alto, tipo };
+      ubicarBloque(b);
+      motivo.append(nodo);
+      return b;
+    });
+    lugar.append(motivo);
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    setInterval(() => { if (motivo.offsetParent !== null && !document.hidden) moverUnBloque(bloques); }, 1800);
+  }
+  iniciarMotivo();
 
   // Colores de la aplicación: se aplican al tocar y quedan guardados en este dispositivo.
   // Los colores están en estilos/paletas.css; acá solo el nombre y dos tonos para la muestra.
