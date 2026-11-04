@@ -146,6 +146,7 @@ async function rutaAgenda(ctx, request, url, partes, profesionalId) {
     if (metodo === 'GET') return json(200, await ctx.agenda.obtenerConfiguracion(profesionalId));
     if (metodo === 'POST') {
       const datos = await leerBody(request);
+      if (datos.horario) return json(200, await ctx.agenda.cambiarHorario(profesionalId, datos.horario.desde, datos.horario.hasta));
       return json(200, await ctx.agenda.cambiarDuracion(profesionalId, datos.duracionTurno, datos.desde));
     }
   }

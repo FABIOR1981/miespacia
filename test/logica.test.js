@@ -60,6 +60,25 @@ test('solo se agenda en punto o y media', async () => {
   await assert.rejects(agenda.agendarTurno('pro-min', { clienteId: c.id, fecha: '2026-11-05', hora: '10:15' }), /punto o y media/);
 });
 
+test('el horario por defecto es de 08:00 a 21:00 y se puede cambiar por profesional', async () => {
+  const persistencia = crearPersistencia({ modo: 'memoria' });
+  const cuenta = await persistencia.profesionales.crear({ email: 'h@t.test', nombre: 'H', rol: 'profesional' });
+  const a = crearAgenda(persistencia);
+  const c = await a.crearCliente(cuenta.id, { nombre: 'C' });
+
+  assert.deepEqual((await a.obtenerConfiguracion(cuenta.id)).horario, { desde: '08:00', hasta: '21:00' });
+  await assert.rejects(a.agendarTurno(cuenta.id, { clienteId: c.id, fecha: '2026-11-04', hora: '07:30' }), /entre 08:00 y 21:00/);
+  await assert.rejects(a.agendarTurno(cuenta.id, { clienteId: c.id, fecha: '2026-11-04', hora: '21:00' }), /entre 08:00 y 21:00/);
+  await assert.rejects(a.agendarTurno(cuenta.id, { clienteId: c.id, fecha: '2026-11-04', hora: '20:30' }), /terminar antes de las 21:00/);
+  await a.agendarTurno(cuenta.id, { clienteId: c.id, fecha: '2026-11-04', hora: '20:00' });
+
+  const cfg = await a.cambiarHorario(cuenta.id, '09:00', '18:00');
+  assert.deepEqual(cfg.horario, { desde: '09:00', hasta: '18:00' });
+  await assert.rejects(a.agendarTurno(cuenta.id, { clienteId: c.id, fecha: '2026-11-05', hora: '08:30' }), /entre 09:00 y 18:00/);
+  await assert.rejects(a.cambiarHorario(cuenta.id, '18:00', '09:00'), /empezar antes/);
+  await assert.rejects(a.cambiarHorario(cuenta.id, '09:15', '18:00'), /punto o y media/);
+});
+
 test('la duración rige desde la fecha del cambio; los turnos anteriores no cambian', async () => {
   const persistencia = crearPersistencia({ modo: 'memoria' });
   const cuenta = await persistencia.profesionales.crear({ email: 'x@t.test', nombre: 'X', rol: 'profesional' });

@@ -181,6 +181,14 @@
         <p class="detalle">Desde esa fecha, las reservas nuevas duran lo elegido. Las ya reservadas quedan como están.</p>
         <p class="aviso-ok" id="perfil-aviso"></p>
         <ul class="lista" id="lista-duraciones"></ul>
+        <h3>Horario de la agenda</h3>
+        <form id="form-horario" class="fila">
+          <label>Desde<select id="horario-desde"></select></label>
+          <label>Hasta<select id="horario-hasta"></select></label>
+          <button class="boton boton-primario">Guardar horario</button>
+        </form>
+        <p class="detalle">Los turnos empiezan dentro de este horario y terminan antes de la hora de cierre. Vale para todos los días.</p>
+        <p class="aviso-ok" id="horario-aviso"></p>
       </section>
 
       <section class="panel vista" data-vista="profesionales" id="panel-admin" hidden>
@@ -204,7 +212,9 @@
   const titulo = new Intl.DateTimeFormat('es-UY', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' });
   const aMinutos = (h) => { const [x, y] = h.split(':').map(Number); return x * 60 + y; };
   const aHora = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
-  const HORAS = Array.from({ length: 26 }, (_, i) => aHora(8 * 60 + i * 30)); // 08:00 a 20:30, de a 30 minutos
+  const OPCIONES_HORA = Array.from({ length: 48 }, (_, i) => aHora(i * 30)); // 00:00 a 23:30, de a 30 minutos
+  const opcionesHora = (actual) => OPCIONES_HORA.map((h) => `<option value="${h}" ${h === actual ? 'selected' : ''}>${h}</option>`).join('');
+  let horario = { desde: '08:00', hasta: '21:00' }; // horario de la agenda del profesional
   let duracionActual = 60;
   const DURACIONES = [30, 60, 90, 120, 150, 180, 210, 240];
   const opcionesDuracion = (actual) => DURACIONES.map((m) =>
@@ -308,6 +318,8 @@
     $('perfil-desde').min = fechaDesplazada(0);
     $('perfil-desde').value = fechaDesplazada(0);
     $('perfil-vigente').textContent = `Hoy las reservas duran ${c.duracionTurno} minutos.`;
+    $('horario-desde').innerHTML = opcionesHora(c.horario.desde);
+    $('horario-hasta').innerHTML = opcionesHora(c.horario.hasta);
     $('lista-duraciones').innerHTML = c.historial.length
       ? c.historial.map((h) => `<li>Desde el ${fechaEsp(h.desde)}: ${h.minutos} minutos</li>`).join('')
       : '<li>Todavía no hay cambios: se usan 60 minutos.</li>';
@@ -324,6 +336,19 @@
       $('perfil-aviso').textContent = `Listo: desde el ${fechaEsp(desde)} las reservas duran ${minutos} minutos.`;
       await cargarPerfil();
       $('perfil-aviso').textContent = `Listo: desde el ${fechaEsp(desde)} las reservas duran ${minutos} minutos.`;
+    } catch (err) { mostrarError(err.message); }
+  });
+
+  $('form-horario').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    mostrarError();
+    $('horario-aviso').textContent = '';
+    try {
+      const desde = $('horario-desde').value;
+      const hasta = $('horario-hasta').value;
+      await api('POST', '/api/configuracion', { horario: { desde, hasta } });
+      await cargarPerfil();
+      $('horario-aviso').textContent = `Listo: la agenda va de ${desde} a ${hasta}.`;
     } catch (err) { mostrarError(err.message); }
   });
 
@@ -365,10 +390,24 @@
     $('fecha-actual').innerHTML = `${titulo.format(aDate(diaSeleccionado))}<small>${diaSeleccionado === fechaDesplazada(0) ? 'Hoy' : ''}</small>`;
   }
 
+  /** Filas del día: el horario de la agenda, ampliado si algún turno cae fuera de él. */
+  function horasParaMostrar(activos) {
+    let ini = aMinutos(horario.desde);
+    let fin = aMinutos(horario.hasta);
+    for (const t of activos) {
+      ini = Math.min(ini, aMinutos(t.hora));
+      fin = Math.max(fin, aMinutos(t.hora) + t.duracion);
+    }
+    const lista = [];
+    for (let m = ini; m < fin; m += 30) lista.push(aHora(m));
+    return lista;
+  }
+
   async function dibujarGrilla() {
     const turnos = await api('GET', agendaUrl('/api/turnos', { desde: diaSeleccionado, hasta: diaSeleccionado }));
     const activos = turnos.filter((t) => !t.cancelado);
     const cancelados = turnos.filter((t) => t.cancelado);
+    const HORAS = horasParaMostrar(activos);
     const cubierto = (m) => activos.some((t) => aMinutos(t.hora) <= m && m < aMinutos(t.hora) + t.duracion);
     const comienza = Object.fromEntries(activos.map((t) => [t.hora, t]));
 
@@ -395,6 +434,7 @@
   async function cargarConfiguracion() {
     const c = await api('GET', agendaUrl('/api/configuracion'));
     duracionActual = c.duracionTurno;
+    horario = c.horario;
   }
 
   async function refrescar() {
