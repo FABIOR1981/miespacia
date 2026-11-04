@@ -21,7 +21,10 @@ function textoObligatorio(valor, campo) {
 }
 
 function validarFecha(fecha) {
-  if (!FECHA.test(String(fecha ?? ''))) throw new ErrorDeNegocio('La fecha debe tener formato AAAA-MM-DD');
+  const texto = String(fecha ?? '');
+  const [a, m, d] = FECHA.test(texto) ? texto.split('-').map(Number) : [];
+  const real = a !== undefined && new Date(Date.UTC(a, m - 1, d)).getUTCDate() === d && m >= 1 && m <= 12;
+  if (!real) throw new ErrorDeNegocio('La fecha debe ser una fecha real con formato AAAA-MM-DD');
   return fecha;
 }
 

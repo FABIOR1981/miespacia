@@ -16,6 +16,13 @@ const { crearAgenda, ErrorDeNegocio } = require('./logica/agenda');
 
 const PUBLIC = path.join(__dirname, '..', 'public');
 const LIMITE_BODY = 100 * 1024;
+const ZONA = 'America/Montevideo';
+
+/** Fecha local 'AAAA-MM-DD' en la zona de Montevideo, desplazada n días. */
+function fechaLocal(desplazamientoDias = 0) {
+  const base = new Date(Date.now() + desplazamientoDias * 86400000);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: ZONA, year: 'numeric', month: '2-digit', day: '2-digit' }).format(base);
+}
 
 function enviarJson(res, estado, cuerpo) {
   res.writeHead(estado, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -61,8 +68,7 @@ function crearServidor({ profesionalId = process.env.MIESPACIA_PROFESIONAL || 'p
       return enviarJson(res, 201, await agenda.crearCliente(profesionalId, await leerBody(req)));
     }
     if (partes[1] === 'turnos' && metodo === 'GET' && partes.length === 2) {
-      const hoy = new Date().toISOString().slice(0, 10);
-      const desde = url.searchParams.get('desde') || hoy;
+      const desde = url.searchParams.get('desde') || fechaLocal();
       const hasta = url.searchParams.get('hasta') || desde;
       return enviarJson(res, 200, await agenda.listarTurnos(profesionalId, desde, hasta));
     }
@@ -104,4 +110,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { crearServidor };
+module.exports = { crearServidor, fechaLocal };

@@ -6,7 +6,7 @@
   "main": "src/servidor.js",
   "scripts": {
     "start": "node src/servidor.js",
-    "test": "node --test test/logica.test.js"
+    "test": "node --test test/logica.test.js test/servidor.test.js"
   },
   "engines": {
     "node": ">=18"

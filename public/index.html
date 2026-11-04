@@ -62,8 +62,9 @@
     return datos;
   }
 
-  function hoy() { return new Date().toISOString().slice(0, 10); }
-  function enDias(n) { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
+  // Fechas en hora de Montevideo, no UTC, para que de noche no salte al día siguiente.
+  const formato = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Montevideo', year: 'numeric', month: '2-digit', day: '2-digit' });
+  function fechaLocal(n = 0) { return formato.format(new Date(Date.now() + n * 86400000)); }
 
   async function cargarClientes() {
     const clientes = await api('GET', '/api/clientes');
@@ -72,7 +73,7 @@
   }
 
   async function cargarTurnos() {
-    const turnos = await api('GET', `/api/turnos?desde=${hoy()}&hasta=${enDias(30)}`);
+    const turnos = await api('GET', `/api/turnos?desde=${fechaLocal()}&hasta=${fechaLocal(30)}`);
     $('lista-turnos').innerHTML = turnos.map((t) => `
       <li class="${t.cancelado ? 'cancelado' : ''}">
         <span>${t.fecha} ${t.hora} · ${escapar(t.clienteNombre || '')}</span>
