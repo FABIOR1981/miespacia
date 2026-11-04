@@ -6,6 +6,19 @@
   <title>miEspacia</title>
   <link rel="stylesheet" href="estilos/base.css">
   <link rel="stylesheet" href="estilos/paletas.css">
+  <script>
+    (function () {
+      var tintas = {oceano: '#132A4A', ciruela: '#2C1E3A', terracota: '#3A2820', grafito: '#1F2327', salvia: '#24332A', oscuro: '#0A1215'};
+      try {
+        var id = localStorage.getItem('espacia.paleta');
+        if (tintas[id]) {
+          document.documentElement.setAttribute('data-paleta', id);
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', tintas[id]);
+        }
+      } catch (e) { /* sin almacenamiento: queda la paleta de siempre */ }
+    })();
+  </script>
   <style>
     body { background: var(--bruma); margin: 0; }
     .barra { position: sticky; top: 0; z-index: 20; height: var(--alto-barra); display: flex; align-items: center; gap: 24px; padding: 0 20px; background: var(--barra-fondo); color: #fff; }
@@ -392,6 +405,12 @@
           </li>
         </ul>
 
+        <div class="paleta-selector">
+          <p class="paleta-titulo" id="paleta-titulo">Colores</p>
+          <div class="paleta-opciones" id="paleta-opciones" role="radiogroup" aria-labelledby="paleta-titulo"></div>
+          <p class="detalle">Se guardan en este dispositivo.</p>
+        </div>
+
         <details class="ajuste-historial">
           <summary>Cambios anteriores de duración</summary>
           <ul class="lista" id="lista-duraciones"></ul>
@@ -617,6 +636,57 @@
     mostrarError();
     cargarSeguimiento().catch((err) => mostrarError(err.message));
   });
+
+  // Colores de la aplicación: se aplican al tocar y quedan guardados en este dispositivo.
+  // Los colores están en estilos/paletas.css; acá solo el nombre y dos tonos para la muestra.
+  const PALETAS = [
+    { id: 'pino', nombre: 'Pino', tinta: '#17303B', acento: '#0F7B6C' },
+    { id: 'oceano', nombre: 'Océano', tinta: '#132A4A', acento: '#2463A6' },
+    { id: 'ciruela', nombre: 'Ciruela', tinta: '#2C1E3A', acento: '#7B3F8F' },
+    { id: 'terracota', nombre: 'Terracota', tinta: '#3A2820', acento: '#A64B2A' },
+    { id: 'grafito', nombre: 'Grafito', tinta: '#1F2327', acento: '#94570C' },
+    { id: 'salvia', nombre: 'Salvia', tinta: '#24332A', acento: '#3F7351' },
+    { id: 'oscuro', nombre: 'Oscuro', tinta: '#0A1215', acento: '#138A74' },
+  ];
+  const CLAVE_PALETA = 'espacia.paleta';
+
+  function paletaGuardada() {
+    try {
+      const id = localStorage.getItem(CLAVE_PALETA);
+      return PALETAS.some((p) => p.id === id) ? id : 'pino';
+    } catch { return 'pino'; }
+  }
+
+  function aplicarPaleta(id) {
+    const paleta = PALETAS.find((p) => p.id === id) || PALETAS[0];
+    if (paleta.id === 'pino') delete document.documentElement.dataset.paleta;
+    else document.documentElement.dataset.paleta = paleta.id;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', paleta.tinta);
+    try {
+      if (paleta.id === 'pino') localStorage.removeItem(CLAVE_PALETA);
+      else localStorage.setItem(CLAVE_PALETA, paleta.id);
+    } catch { /* sin almacenamiento: la paleta vale hasta cerrar la página */ }
+  }
+
+  function dibujarPaletas() {
+    const cont = $('paleta-opciones');
+    const actual = paletaGuardada();
+    for (const p of PALETAS) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'paleta-opcion';
+      b.setAttribute('role', 'radio');
+      b.setAttribute('aria-checked', String(p.id === actual));
+      b.innerHTML = `<span class="paleta-muestra" style="--m1:${p.tinta};--m2:${p.acento}"></span>${p.nombre}`;
+      b.addEventListener('click', () => {
+        aplicarPaleta(p.id);
+        for (const o of cont.children) o.setAttribute('aria-checked', String(o === b));
+      });
+      cont.appendChild(b);
+    }
+  }
+  dibujarPaletas();
 
   // Cada ajuste muestra su valor y se edita en un formulario que se abre al tocar Cambiar.
   function cerrarAjuste(form) {

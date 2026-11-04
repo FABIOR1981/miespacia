@@ -406,3 +406,16 @@ body.fecha-en-barra .barra-fecha { display: inline-flex; animation: hoja-entra .
 .estado-item-cabecera { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 .estado-item-detalle, .estado-item-nota { font-size: 0.92rem; }
 .estado-item-nota { opacity: 0.8; }
+
+/* Selector de colores (Mi perfil) */
+.paleta-selector { margin-top: 18px; display: grid; gap: 8px; }
+.paleta-titulo { margin: 0; font-weight: 600; font-size: .92rem; }
+.paleta-opciones { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.paleta-opcion {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--linea-fuerte);
+  border-radius: 10px; background: var(--papel, #fff); color: var(--tinta); font: inherit; font-size: .9rem; cursor: pointer; text-align: left;
+}
+.paleta-opcion:hover { border-color: var(--tinta-suave); }
+.paleta-opcion[aria-checked="true"] { border-color: var(--pino); background: var(--pino-claro); box-shadow: inset 0 0 0 1px var(--pino); }
+.paleta-opcion:focus-visible { outline: 3px solid var(--pino); outline-offset: 1px; }
+.paleta-muestra { flex: none; width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(135deg, var(--m1) 50%, var(--m2) 50%); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12); }
