@@ -24,6 +24,7 @@
       .nav-principal button { padding: 6px 8px; font-size: .88rem; }
       .cuenta-boton .texto { display: none; }
     }
+    .contenido > * { min-width: 0; }
     .contenido { max-width: 960px; margin: 0 auto; padding: 16px 16px 48px; display: grid; gap: 14px; }
     .cabecera-dia { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
     .fecha-actual { font-size: clamp(1.3rem, 3vw, 1.8rem); font-weight: 700; color: var(--tinta); }
@@ -37,10 +38,10 @@
     .dia-numero { font-size: 1.15rem; font-weight: 650; }
     .dia[aria-pressed="true"] { background: var(--activo-fondo); border-color: var(--activo-fondo); color: #fff; }
     .dia[aria-pressed="true"] .dia-nombre { color: var(--sobre-tinta); }
-    .grilla { display: grid; grid-template-columns: 1fr; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio-tarjeta); overflow: hidden; }
-    .columna { display: grid; grid-template-columns: 64px 1fr; grid-auto-rows: 34px; align-content: start; min-width: 0; }
+    .grilla { display: grid; grid-template-columns: minmax(0, 1fr); background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio-tarjeta); overflow: hidden; }
+    .columna { display: grid; grid-template-columns: 64px minmax(0, 1fr); grid-auto-rows: 34px; align-content: start; min-width: 0; }
     @media (min-width: 720px) {
-      .grilla { grid-template-columns: 1fr 1fr; }
+      .grilla { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
       .columna + .columna { border-left: 1px solid var(--linea); }
     }
     .reserva-bloque.continua { color: var(--tinta-suave); }
