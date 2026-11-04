@@ -4,12 +4,18 @@ const assert = require('node:assert/strict');
 
 let worker;
 before(async () => { worker = (await import('../src/worker.mjs')).default; });
-const env = { MIESPACIA_PROFESIONAL: 'pro-test', ASSETS: { fetch: async () => new Response('pagina') } };
+
+const ADMIN = 'admin@miespacia.test';
+const env = { ADMIN_EMAIL: ADMIN, ASSETS: { fetch: async () => new Response('pagina') } };
 const pedir = (ruta, metodo = 'GET', cuerpo) =>
-  worker.fetch(new Request('http://x' + ruta, { method: metodo, body: cuerpo ? JSON.stringify(cuerpo) : undefined }), env);
+  worker.fetch(new Request('http://x' + ruta, {
+    method: metodo,
+    headers: { 'Content-Type': 'application/json', 'Cf-Access-Authenticated-User-Email': ADMIN },
+    body: cuerpo ? JSON.stringify(cuerpo) : undefined,
+  }), env);
 
 test('el Worker sirve la página para rutas que no son API', async () => {
-  const r = await pedir('/');
+  const r = await worker.fetch(new Request('http://x/'), env);
   assert.equal(await r.text(), 'pagina');
 });
 

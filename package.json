@@ -8,7 +8,7 @@
     "start": "node src/servidor.js",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "test": "node --test test/logica.test.js test/servidor.test.js test/worker.test.js test/functions.test.js"
+    "test": "node --test test/logica.test.js test/acceso.test.js test/servidor.test.js test/worker.test.js test/functions.test.js"
   },
   "engines": {
     "node": ">=18"

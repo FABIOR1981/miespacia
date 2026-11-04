@@ -3,18 +3,21 @@
  * Interfaz de persistencia de miEspacia: el ÚNICO módulo que sabe dónde se guardan los datos.
  *
  * La lógica recibe solo las piezas que devuelve crearPersistencia() y no importa nada más
- * de persistencia. Hoy el único modo es 'memoria' (pruebas). Cuando se conecte la base de
- * datos, se agrega un modo nuevo acá, sin tocar la lógica.
+ * de persistencia. Hoy el único modo es 'memoria'. Cuando se conecte la base de datos,
+ * se agrega un modo nuevo acá, sin tocar la lógica.
  *
- *   clientes → clientes/pacientes del profesional (listar, obtener, crear, actualizar, eliminar)
- *   turnos   → agenda del profesional (listarRango, obtener, crear, cancelar, eliminar)
+ *   profesionales → cuentas (email, nombre, rol admin|profesional, activo)
+ *   clientes      → clientes/pacientes de cada profesional
+ *   turnos        → agenda de cada profesional
  */
 
 const { crearClientesEnMemoria } = require('./memoria/clientes');
 const { crearTurnosEnMemoria } = require('./memoria/turnos');
+const { crearProfesionalesEnMemoria } = require('./memoria/profesionales');
 
 const MODOS = {
   memoria: () => ({
+    profesionales: crearProfesionalesEnMemoria(),
     clientes: crearClientesEnMemoria(),
     turnos: crearTurnosEnMemoria(),
   }),
@@ -23,7 +26,6 @@ const MODOS = {
 /**
  * @param {object} opciones
  * @param {string} opciones.modo 'memoria' por ahora
- * @returns {{ clientes: object, turnos: object }}
  */
 function crearPersistencia({ modo } = {}) {
   const fabricar = MODOS[modo];
