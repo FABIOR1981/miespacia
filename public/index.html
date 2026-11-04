@@ -17,6 +17,7 @@
     .cuenta-boton { display: inline-flex; align-items: center; gap: 10px; min-height: 40px; padding: 4px 14px 4px 6px; border: 0; border-radius: 999px; background: rgba(255, 255, 255, .1); color: #fff; font: inherit; font-weight: 550; }
     .cuenta-boton:hover, .cuenta-boton[aria-current="page"] { background: rgba(255, 255, 255, .2); }
     .iniciales { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--pino); color: #fff; font-size: .82rem; font-weight: 700; }
+    input[type="email"] { width: 100%; min-height: 46px; padding: 10px 14px; background: var(--papel); border: 1.5px solid var(--linea-fuerte); border-radius: var(--radio-campo); font: inherit; }
     #salir { background: transparent; border: 1px solid var(--sobre-tinta-tenue); color: #fff; border-radius: var(--radio-boton); padding: 6px 12px; font: inherit; }
     @media (max-width: 640px) {
       .barra { gap: 8px; padding: 0 12px; }
@@ -87,7 +88,7 @@
     <section class="panel" id="panel-ingreso" hidden>
       <h2>Ingresar</h2>
       <form id="form-ingreso" class="fila">
-        <label>Email<input type="email" name="email" required autocomplete="username"></label>
+        <label>Email o usuario<input type="text" name="email" required autocomplete="username"></label>
         <label>Clave<input type="password" name="clave" required autocomplete="current-password"></label>
         <button class="boton boton-primario">Ingresar</button>
       </form>
@@ -196,6 +197,7 @@
         <form id="form-profesional" class="fila">
           <input name="nombre" placeholder="Nombre" required>
           <input name="email" type="email" placeholder="Email" required>
+          <input name="usuario" placeholder="Usuario (opcional)">
           <button class="boton boton-primario">Dar de alta</button>
         </form>
         <p class="aviso-ok" id="clave-temporal"></p>
@@ -204,6 +206,26 @@
     </div>
   </main>
 
+
+  <dialog class="hoja" id="modal-profesional" aria-labelledby="titulo-profesional">
+    <header class="hoja-cabecera">
+      <h2 id="titulo-profesional">Editar profesional</h2>
+      <button class="boton-icono" type="button" id="cerrar-profesional" aria-label="Cerrar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </header>
+    <div class="hoja-cuerpo">
+      <form id="form-editar-profesional" novalidate>
+        <div class="campo"><label for="editar-nombre">Nombre</label><input id="editar-nombre" name="nombre" required></div>
+        <div class="campo"><label for="editar-usuario">Usuario</label><input id="editar-usuario" name="usuario" required></div>
+        <div class="campo"><label for="editar-email">Email</label><input id="editar-email" name="email" type="email" required></div>
+        <div class="hoja-acciones">
+          <button class="boton boton-primario">Guardar</button>
+          <button class="boton boton-secundario" type="button" id="volver-profesional">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
 
 <script>
   const $ = (id) => document.getElementById(id);
@@ -352,6 +374,32 @@
     } catch (err) { mostrarError(err.message); }
   });
 
+  let editandoId = null;
+
+  function abrirEditarProfesional(id) {
+    const p = profesionales.find((x) => x.id === id);
+    if (!p) return;
+    editandoId = id;
+    $('editar-nombre').value = p.nombre;
+    $('editar-usuario').value = p.usuario || '';
+    $('editar-email').value = p.email;
+    $('modal-profesional').showModal();
+  }
+
+  $('cerrar-profesional').addEventListener('click', () => $('modal-profesional').close());
+  $('volver-profesional').addEventListener('click', () => $('modal-profesional').close());
+  $('form-editar-profesional').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    mostrarError();
+    try {
+      const datos = Object.fromEntries(new FormData(e.target));
+      const p = await api('POST', `/api/profesionales/${editandoId}/editar`, datos);
+      $('modal-profesional').close();
+      await cargarProfesionales();
+      mostrarClaveTemporal(`Datos actualizados: ${p.nombre} · @${p.usuario}`);
+    } catch (err) { mostrarError(err.message); }
+  });
+
   async function cargarProfesionales() {
     profesionales = await api('GET', '/api/profesionales');
     const activos = profesionales.filter((p) => p.activo);
@@ -360,9 +408,10 @@
       activos.filter((p) => p.id !== yo.id).map((p) => `<option value="${p.id}" ${agendaDe === p.id ? 'selected' : ''}>${escapar(p.nombre)}</option>`).join('');
     $('lista-profesionales').innerHTML = profesionales.map((p) => `
       <li class="${p.activo ? '' : 'inactivo'}">
-        <span>${escapar(p.nombre)} <span class="detalle">${escapar(p.email)}${p.activo ? '' : ' · desactivado'}</span></span>
+        <span>${escapar(p.nombre)} <span class="detalle">@${escapar(p.usuario || '')} · ${escapar(p.email)}${p.activo ? '' : ' · desactivado'}</span></span>
         ${p.activo ? `
           <span class="fila">
+            <button class="boton boton-secundario" data-editar="${p.id}">Editar</button>
             <select data-duracion="${p.id}">${opcionesDuracion(p.duracionTurno)}</select>
             <button class="boton boton-secundario" data-guardar="${p.id}">Guardar duración</button>
             ${p.id !== yo.id ? `
@@ -552,6 +601,8 @@
     const reiniciar = e.target.dataset.reiniciar;
     const desactivar = e.target.dataset.desactivar;
     const guardar = e.target.dataset.guardar;
+    const editar = e.target.dataset.editar;
+    if (editar) { abrirEditarProfesional(Number(editar)); return; }
     if (!reiniciar && !desactivar && !guardar) return;
     mostrarError();
     try {
