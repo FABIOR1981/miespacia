@@ -556,8 +556,7 @@
     const horas = horasParaMostrar(activos);
 
     // Dos columnas: la primera mitad del día a la izquierda y el resto a la derecha.
-    // El corte cae en la primera hora en punto después del medio: la izquierda llega hasta la media hora anterior
-    // y la derecha arranca con su etiqueta, sin salto en la lectura.
+    // Dinámico: el corte cae en la primera hora en punto después de la mitad del horario.
     const medio = horas.length / 2;
     const corte = horas.findIndex((h, i) => i > medio && h.endsWith(':00'));
     const mitad = corte > 0 ? corte : Math.ceil(medio);
