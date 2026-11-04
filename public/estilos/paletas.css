@@ -1,0 +1,64 @@
+/* Paletas de color que cada persona elige en «Mi cuenta». La de base.css (Pino) es la de siempre; «Oscuro» es el modo oscuro.
+ * Se aplican con el atributo data-paleta en <html> (lo pone paleta.js antes de dibujar la página).
+ * Los colores de los consultorios no cambian con la paleta elegida. */
+
+/* El cuadrado del logo toma el color principal de la paleta. */
+.marca svg rect:first-child { fill: var(--pino); }
+
+/* Océano */
+:root[data-paleta="oceano"] {
+  --tinta: #132A4A; --tinta-suave: #4A5D78; --bruma: #EEF2F7; --linea: #D3DCE8; --linea-fuerte: #B2C0D3;
+  --pino: #2463A6; --pino-oscuro: #1B4D84; --pino-claro: #E0EBF8;
+  --ocupado-fondo: #E3E8EF; --ocupado-raya: #D2D9E3; --ocupado-texto: #4D5C70;
+  --sobre-tinta: #BCCDE4; --sobre-tinta-tenue: #93A9C7; --nav-texto: #CCD9EC; --hoy-punto: #7DB4F0;
+}
+
+/* Ciruela */
+:root[data-paleta="ciruela"] {
+  --tinta: #2C1E3A; --tinta-suave: #5E5170; --bruma: #F3F0F6; --linea: #DED6E6; --linea-fuerte: #C2B6CF;
+  --pino: #7B3F8F; --pino-oscuro: #5F2F6F; --pino-claro: #F1E6F6;
+  --ocupado-fondo: #EAE5EF; --ocupado-raya: #DCD5E3; --ocupado-texto: #5A4E68;
+  --sobre-tinta: #D3C4E0; --sobre-tinta-tenue: #AE9BC2; --nav-texto: #DDD0E8; --hoy-punto: #C99BE0;
+}
+
+/* Terracota */
+:root[data-paleta="terracota"] {
+  --tinta: #3A2820; --tinta-suave: #6B574D; --bruma: #F6F1EE; --linea: #E4D8D1; --linea-fuerte: #CDBCB2;
+  --pino: #A64B2A; --pino-oscuro: #843A1F; --pino-claro: #F8E6DD;
+  --ocupado-fondo: #EEE7E3; --ocupado-raya: #E2D8D2; --ocupado-texto: #65544B;
+  --sobre-tinta: #E2CCC0; --sobre-tinta-tenue: #BFA597; --nav-texto: #EBDBD2; --hoy-punto: #F0A27F;
+}
+
+/* Grafito */
+:root[data-paleta="grafito"] {
+  --tinta: #1F2327; --tinta-suave: #555B62; --bruma: #F2F2F1; --linea: #DADBD9; --linea-fuerte: #BDBFBC;
+  --pino: #94570C; --pino-oscuro: #74430A; --pino-claro: #FAEBD7;
+  --ocupado-fondo: #E8E8E7; --ocupado-raya: #DADAD8; --ocupado-texto: #575C61;
+  --sobre-tinta: #C9CCCF; --sobre-tinta-tenue: #9EA3A8; --nav-texto: #D6D9DC; --hoy-punto: #F2B45C;
+}
+
+/* Salvia */
+:root[data-paleta="salvia"] {
+  --tinta: #24332A; --tinta-suave: #56655B; --bruma: #F1F4F0; --linea: #D7DFD6; --linea-fuerte: #B9C5B8;
+  --pino: #3F7351; --pino-oscuro: #2F5A3E; --pino-claro: #E2EFE5;
+  --ocupado-fondo: #E6EBE5; --ocupado-raya: #D7DED6; --ocupado-texto: #526157;
+  --sobre-tinta: #C6D6CB; --sobre-tinta-tenue: #9FB5A6; --nav-texto: #D3E0D7; --hoy-punto: #8FD0A3;
+}
+
+/* Oscuro: fondo casi negro, superficies gris petróleo y textos claros. Solo en pantalla: al imprimir queda la versión clara. */
+@media screen {
+  :root[data-paleta="oscuro"] {
+    color-scheme: dark;
+    --tinta: #E3EBEA; --tinta-suave: #9DB0B0; --bruma: #0E181B; --papel: #16232A; --linea: #24343A; --linea-fuerte: #384B51;
+    --pino: #138A74; --pino-oscuro: #1AA58B; --pino-claro: #133A34;
+    --ocupado-fondo: #1C2A30; --ocupado-raya: #24353B; --ocupado-texto: #A3B5B6;
+    --peligro: #C7343D; --peligro-claro: #3B1D21; --error-texto: #F4B6BB;
+    --sobre-tinta: #A9C2C1; --sobre-tinta-tenue: #7F9C9C; --nav-texto: #C5D6D5; --hoy-punto: #FFFFFF;
+    --barra-fondo: #0A1215; --activo-fondo: #138A74;
+    --celda-pasada: #121E22;
+    --bloqueo-a: #2A393F; --bloqueo-b: #33454B; --bloqueo-texto: #D3DEDF;
+    --pestanas-fondo: #1C2A30; --inactivo-fondo: #121D21;
+    --pendiente-fondo: #3A2E14; --pendiente-texto: #F2D08A;
+    --telon: rgba(0, 0, 0, .6);
+  }
+}

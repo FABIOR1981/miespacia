@@ -4,52 +4,65 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>miEspacia</title>
+  <link rel="stylesheet" href="estilos/base.css">
+  <link rel="stylesheet" href="estilos/paletas.css">
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; color: #222; }
-    h1 { font-size: 1.6rem; }
-    section { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; }
-    form { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .75rem; }
-    input, select, button { padding: .45rem .6rem; font: inherit; }
-    button { cursor: pointer; }
-    ul { list-style: none; padding: 0; margin: 0; }
-    li { padding: .4rem 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; gap: .5rem; }
-    .cancelado { color: #999; text-decoration: line-through; }
-    .error { color: #b00020; min-height: 1.2em; }
+    body { background: var(--bruma); margin: 0; }
+    .contenedor { max-width: 880px; margin: 0 auto; padding: 24px 16px 48px; display: grid; gap: 18px; }
+    .cabecera { display: flex; align-items: center; gap: 10px; }
+    .cabecera h1 { font-size: 1.6rem; margin: 0; font-weight: 700; color: var(--tinta); }
+    .tarjeta { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio-tarjeta); padding: 18px; }
+    .tarjeta h2 { font-size: 1.1rem; margin: 0 0 12px; color: var(--tinta); }
+    .fila { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .fila input, .fila select { flex: 1 1 160px; min-height: 42px; padding: 0 12px; border: 1.5px solid var(--linea-fuerte); border-radius: var(--radio-campo); background: var(--papel); }
+    .lista { list-style: none; margin: 0; padding: 0; }
+    .lista li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--linea); }
+    .lista li:last-child { border-bottom: 0; }
+    .detalle { color: var(--tinta-suave); font-size: .92rem; }
+    .cancelado { color: var(--tinta-suave); text-decoration: line-through; }
+    .vacio { color: var(--tinta-suave); font-style: italic; }
+    .aviso { color: var(--error-texto); background: var(--peligro-claro); border-radius: var(--radio-campo); padding: 10px 12px; min-height: 0; }
+    .aviso:empty { display: none; }
   </style>
 </head>
 <body>
-  <h1>miEspacia</h1>
-  <p class="error" id="error"></p>
+  <main class="contenedor">
+    <header class="cabecera">
+      <h1>miEspacia</h1>
+    </header>
 
-  <section>
-    <h2>Clientes</h2>
-    <form id="form-cliente">
-      <input name="nombre" placeholder="Nombre" required>
-      <input name="telefono" placeholder="Teléfono">
-      <input name="notas" placeholder="Notas">
-      <button>Agregar</button>
-    </form>
-    <ul id="lista-clientes"></ul>
-  </section>
+    <p class="aviso" id="aviso" role="alert"></p>
 
-  <section>
-    <h2>Agendar turno</h2>
-    <form id="form-turno">
-      <select name="clienteId" id="select-cliente" required></select>
-      <input type="date" name="fecha" required>
-      <input type="time" name="hora" required>
-      <button>Agendar</button>
-    </form>
-  </section>
+    <section class="tarjeta">
+      <h2>Clientes</h2>
+      <form id="form-cliente" class="fila">
+        <input name="nombre" placeholder="Nombre" required>
+        <input name="telefono" placeholder="Teléfono">
+        <input name="notas" placeholder="Notas">
+        <button class="boton boton-primario">Agregar</button>
+      </form>
+      <ul class="lista" id="lista-clientes"></ul>
+    </section>
 
-  <section>
-    <h2>Próximos turnos (30 días)</h2>
-    <ul id="lista-turnos"></ul>
-  </section>
+    <section class="tarjeta">
+      <h2>Agendar turno</h2>
+      <form id="form-turno" class="fila">
+        <select name="clienteId" id="select-cliente" required></select>
+        <input type="date" name="fecha" required>
+        <input type="time" name="hora" required>
+        <button class="boton boton-primario">Agendar</button>
+      </form>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Próximos turnos (30 días)</h2>
+      <ul class="lista" id="lista-turnos"></ul>
+    </section>
+  </main>
 
 <script>
   const $ = (id) => document.getElementById(id);
-  const mostrarError = (msg) => { $('error').textContent = msg || ''; };
+  const mostrarError = (msg) => { $('aviso').textContent = msg || ''; };
 
   async function api(metodo, ruta, cuerpo) {
     const r = await fetch(ruta, {
@@ -66,23 +79,25 @@
   const formato = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Montevideo', year: 'numeric', month: '2-digit', day: '2-digit' });
   function fechaLocal(n = 0) { return formato.format(new Date(Date.now() + n * 86400000)); }
 
+  function escapar(texto) {
+    return String(texto).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
   async function cargarClientes() {
     const clientes = await api('GET', '/api/clientes');
-    $('lista-clientes').innerHTML = clientes.map((c) => `<li><span>${escapar(c.nombre)} ${escapar(c.telefono || '')}</span></li>`).join('') || '<li>Sin clientes</li>';
+    $('lista-clientes').innerHTML = clientes.map((c) =>
+      `<li><span>${escapar(c.nombre)} <span class="detalle">${escapar(c.telefono || '')}</span></span></li>`).join('')
+      || '<li class="vacio">Todavía no hay clientes</li>';
     $('select-cliente').innerHTML = clientes.map((c) => `<option value="${c.id}">${escapar(c.nombre)}</option>`).join('');
   }
 
   async function cargarTurnos() {
     const turnos = await api('GET', `/api/turnos?desde=${fechaLocal()}&hasta=${fechaLocal(30)}`);
     $('lista-turnos').innerHTML = turnos.map((t) => `
-      <li class="${t.cancelado ? 'cancelado' : ''}">
-        <span>${t.fecha} ${t.hora} · ${escapar(t.clienteNombre || '')}</span>
-        ${t.cancelado ? '<em>cancelado</em>' : `<button data-cancelar="${t.id}">Cancelar</button>`}
-      </li>`).join('') || '<li>Sin turnos</li>';
-  }
-
-  function escapar(texto) {
-    return String(texto).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      <li>
+        <span class="${t.cancelado ? 'cancelado' : ''}">${t.fecha} · ${t.hora} · ${escapar(t.clienteNombre || '')}</span>
+        ${t.cancelado ? '<span class="detalle">cancelado</span>' : `<button class="boton boton-secundario" data-cancelar="${t.id}">Cancelar</button>`}
+      </li>`).join('') || '<li class="vacio">No hay turnos en los próximos 30 días</li>';
   }
 
   $('form-cliente').addEventListener('submit', async (e) => {
