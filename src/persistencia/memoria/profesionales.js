@@ -16,6 +16,7 @@ function crearProfesionalesEnMemoria() {
     },
 
     porEmail: async (email) => {
+      if (!email) return null;
       const r = registros.find((x) => x.email === String(email).toLowerCase());
       return r ? copia(r) : null;
     },
@@ -28,7 +29,7 @@ function crearProfesionalesEnMemoria() {
     crear: async ({ email, usuario, nombre, rol, claveHash = null, requiereCambioClave = false, duracionTurno = 60 }) => {
       const nuevo = {
         id: secuencia++,
-        email: String(email).toLowerCase(),
+        email: email ? String(email).toLowerCase() : null,
         usuario: String(usuario).toLowerCase(),
         nombre,
         rol,

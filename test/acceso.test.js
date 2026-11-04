@@ -69,13 +69,13 @@ test('clave incorrecta no entra, y un email que no existe da el mismo error', as
 test('el administrador da de alta profesionales; cada uno ve solo su agenda', async () => {
   const cookieAdmin = await admin();
 
-  let r = await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'ana@t.test', nombre: 'Ana' });
+  let r = await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'ana@t.test', usuario: 'ana', nombre: 'Ana' });
   assert.equal(r.status, 201);
   const altaAna = await r.json();
   assert.ok(altaAna.claveTemporal);
   const anaId = altaAna.profesional.id;
 
-  r = await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'luis@t.test', nombre: 'Luis' });
+  r = await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'luis@t.test', usuario: 'luis', nombre: 'Luis' });
   const altaLuis = await r.json();
 
   const cookieAna = await entrarListo('ana@t.test', altaAna.claveTemporal, 'ClaveAna-2026');
@@ -96,15 +96,15 @@ test('el administrador da de alta profesionales; cada uno ve solo su agenda', as
 
 test('un profesional no puede gestionar profesionales ni duplicar emails', async () => {
   const cookieAdmin = await admin();
-  const altaAna = await (await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'dup@t.test', nombre: 'Dup' })).json();
+  const altaAna = await (await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'dup@t.test', usuario: 'dup', nombre: 'Dup' })).json();
   const cookieDup = await entrarListo('dup@t.test', altaAna.claveTemporal, 'ClaveDup-2026');
   assert.equal((await pedir('/api/profesionales', cookieDup)).status, 403);
-  assert.equal((await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'dup@t.test', nombre: 'Otra' })).status, 409);
+  assert.equal((await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'dup@t.test', usuario: 'dup', nombre: 'Otra' })).status, 409);
 });
 
 test('tras 5 intentos fallidos el email queda bloqueado un rato', async () => {
   const cookieAdmin = await admin();
-  await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'bloq@t.test', nombre: 'Bloq' });
+  await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'bloq@t.test', usuario: 'bloq', nombre: 'Bloq' });
   for (let i = 0; i < 5; i++) assert.equal((await ingresar('bloq@t.test', 'mala-clave')).status, 401);
   const bloqueado = await ingresar('bloq@t.test', 'cualquiera');
   assert.equal(bloqueado.status, 429);
@@ -112,7 +112,7 @@ test('tras 5 intentos fallidos el email queda bloqueado un rato', async () => {
 
 test('el administrador reinicia una clave y la anterior deja de servir', async () => {
   const cookieAdmin = await admin();
-  const alta = await (await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'reinicio@t.test', nombre: 'R' })).json();
+  const alta = await (await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'reinicio@t.test', usuario: 'reinicio', nombre: 'R' })).json();
   const profesional = alta.profesional;
   const nueva = await (await pedir(`/api/profesionales/${profesional.id}/reiniciar-clave`, cookieAdmin, 'POST')).json();
   assert.ok(nueva.claveTemporal);
@@ -123,7 +123,7 @@ test('el administrador reinicia una clave y la anterior deja de servir', async (
 
 test('desactivar un profesional le corta el acceso, incluso con sesión abierta', async () => {
   const cookieAdmin = await admin();
-  const alta = await (await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'marta@t.test', nombre: 'Marta' })).json();
+  const alta = await (await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'marta@t.test', usuario: 'marta', nombre: 'Marta' })).json();
   const cookieMarta = await entrarListo('marta@t.test', alta.claveTemporal, 'ClaveMarta-2026');
   assert.equal((await pedir('/api/yo', cookieMarta)).status, 200);
 
@@ -140,7 +140,7 @@ test('el administrador no puede desactivarse a sí mismo', async () => {
 
 test('el administrador puede cancelar un turno de cualquier profesional', async () => {
   const cookieAdmin = await admin();
-  const alta = await (await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'rita@t.test', nombre: 'Rita' })).json();
+  const alta = await (await pedir('/api/profesionales', cookieAdmin, 'POST', { email: 'rita@t.test', usuario: 'rita', nombre: 'Rita' })).json();
   const cookieRita = await entrarListo('rita@t.test', alta.claveTemporal, 'ClaveRita-2026');
   const cliente = await (await pedir('/api/clientes', cookieRita, 'POST', { nombre: 'C' })).json();
   const turno = await (await pedir('/api/turnos', cookieRita, 'POST', { clienteId: cliente.id, fecha: '2026-11-10', hora: '09:00' })).json();
