@@ -43,3 +43,31 @@ test('valida datos de entrada', async () => {
   await assert.rejects(agenda.agendarTurno('pro-1', { clienteId: c.id, fecha: '2026-11-04', hora: '25:00' }), /HH:MM/);
   await assert.rejects(agenda.agendarTurno('pro-1', { clienteId: 999, fecha: '2026-11-04', hora: '10:00' }), (e) => e.estado === 404);
 });
+
+test('los turnos duran 60 minutos y no se superponen', async () => {
+  const agenda = nueva();
+  const c = await agenda.crearCliente('pro-dur', { nombre: 'Ana' });
+  await agenda.agendarTurno('pro-dur', { clienteId: c.id, fecha: '2026-11-05', hora: '10:00' });
+  for (const hora of ['09:30', '10:30']) {
+    await assert.rejects(agenda.agendarTurno('pro-dur', { clienteId: c.id, fecha: '2026-11-05', hora }), (e) => e.estado === 409, hora);
+  }
+  await agenda.agendarTurno('pro-dur', { clienteId: c.id, fecha: '2026-11-05', hora: '11:00' });
+});
+
+test('solo se agenda en punto o y media', async () => {
+  const agenda = nueva();
+  const c = await agenda.crearCliente('pro-min', { nombre: 'Ana' });
+  await assert.rejects(agenda.agendarTurno('pro-min', { clienteId: c.id, fecha: '2026-11-05', hora: '10:15' }), /punto o y media/);
+});
+
+test('cada profesional configura su duración y la regla la respeta', async () => {
+  const agenda = nueva();
+  const persistencia = crearPersistencia({ modo: 'memoria' });
+  const cuenta = await persistencia.profesionales.crear({ email: 'x@t.test', nombre: 'X', rol: 'profesional' });
+  const a = crearAgenda(persistencia);
+  assert.deepEqual(await a.cambiarDuracion(cuenta.id, 30), { duracionTurno: 30 });
+  const c = await a.crearCliente(cuenta.id, { nombre: 'C' });
+  await a.agendarTurno(cuenta.id, { clienteId: c.id, fecha: '2026-11-05', hora: '10:00' });
+  await a.agendarTurno(cuenta.id, { clienteId: c.id, fecha: '2026-11-05', hora: '10:30' });
+  await assert.rejects(a.cambiarDuracion(cuenta.id, 45), /30 a 240/);
+});

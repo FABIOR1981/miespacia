@@ -56,6 +56,10 @@
     .modal h2 { margin: 0 0 12px; font-size: 1.05rem; }
     .modal form { display: grid; gap: 12px; }
     .modal .acciones { display: flex; gap: 8px; justify-content: flex-end; }
+    .fila-hora.continua .celda { background: var(--pino-claro); border-left: 4px solid var(--pino); }
+    .fila-hora.continua .hora { color: transparent; }
+    .fila-hora.continua { border-bottom-color: transparent; }
+    .reserva-fin { font-size: .85rem; color: var(--tinta-suave); }
     .selector select { min-height: 42px; padding: 0 12px; border: 1.5px solid var(--linea-fuerte); border-radius: var(--radio-campo); background: var(--papel); }
   </style>
 </head>
@@ -103,6 +107,18 @@
       </section>
 
       <div class="vista" data-vista="agenda">
+      <section class="panel">
+        <div class="selector">
+          <label for="select-duracion">Duración de cada turno</label>
+          <select id="select-duracion">
+            <option value="30">30 minutos</option>
+            <option value="60">60 minutos</option>
+            <option value="90">90 minutos</option>
+            <option value="120">2 horas</option>
+          </select>
+          <button class="boton boton-secundario" id="guardar-duracion">Guardar</button>
+        </div>
+      </section>
       <div class="cabecera-dia">
         <div class="fecha-actual" id="fecha-actual"></div>
         <div class="nav-fecha">
@@ -157,7 +173,10 @@
   const formato = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Montevideo', year: 'numeric', month: '2-digit', day: '2-digit' });
   const nombreDia = new Intl.DateTimeFormat('es-UY', { timeZone: 'UTC', weekday: 'short' });
   const titulo = new Intl.DateTimeFormat('es-UY', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' });
-  const HORAS = Array.from({ length: 12 }, (_, i) => String(8 + i).padStart(2, '0') + ':00');
+  const aMinutos = (h) => { const [x, y] = h.split(':').map(Number); return x * 60 + y; };
+  const aHora = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  const HORAS = Array.from({ length: 26 }, (_, i) => aHora(8 * 60 + i * 30)); // 08:00 a 20:30, de a 30 minutos
+  let duracionActual = 60;
 
   let yo = null;
   let profesionales = [];
@@ -232,7 +251,9 @@
     document.querySelectorAll('.vista').forEach((el) => { el.hidden = el.dataset.vista !== nombre; });
     document.querySelectorAll('.menu button').forEach((b) => b.setAttribute('aria-current', b.dataset.vista === nombre ? 'page' : 'false'));
     mostrarError();
-    const cargar = nombre === 'clientes' ? cargarClientes : nombre === 'profesionales' ? cargarProfesionales : refrescar;
+    const cargar = nombre === 'clientes' ? cargarClientes
+      : nombre === 'profesionales' ? cargarProfesionales
+      : async () => { await cargarConfiguracion(); await refrescar(); };
     cargar().catch((err) => mostrarError(err.message));
   }
 
@@ -278,17 +299,35 @@
 
   async function dibujarGrilla() {
     const turnos = await api('GET', agendaUrl('/api/turnos', { desde: diaSeleccionado, hasta: diaSeleccionado }));
-    const activos = Object.fromEntries(turnos.filter((t) => !t.cancelado).map((t) => [t.hora, t]));
+    const activos = turnos.filter((t) => !t.cancelado);
     const cancelados = turnos.filter((t) => t.cancelado);
+    const cubierto = (m) => activos.find((t) => aMinutos(t.hora) <= m && m < aMinutos(t.hora) + t.duracion);
+    const comienza = Object.fromEntries(activos.map((t) => [t.hora, t]));
+
     $('grilla').innerHTML = HORAS.map((h) => {
-      const t = activos[h];
-      const celda = t
-        ? `<div class="reserva"><span><strong>${escapar(t.clienteNombre || '')}</strong></span>
-             <button class="boton boton-secundario" data-cancelar="${t.id}">Cancelar</button></div>`
-        : `<button class="libre" data-hora="${h}">Libre · reservar</button>`;
-      return `<div class="fila-hora"><div class="hora">${h}</div><div class="celda">${celda}</div></div>`;
+      const m = aMinutos(h);
+      const t = comienza[h];
+      if (t) {
+        const cierre = aHora(aMinutos(t.hora) + t.duracion);
+        return `<div class="fila-hora"><div class="hora">${h}</div><div class="celda">
+          <div class="reserva"><span><strong>${escapar(t.clienteNombre || '')}</strong>
+            <span class="reserva-fin"> · ${h} a ${cierre}</span></span>
+            <button class="boton boton-secundario" data-cancelar="${t.id}">Cancelar</button></div>
+        </div></div>`;
+      }
+      if (cubierto(m)) {
+        return `<div class="fila-hora continua"><div class="hora">${h}</div><div class="celda"></div></div>`;
+      }
+      return `<div class="fila-hora"><div class="hora">${h}</div><div class="celda">
+        <button class="libre" data-hora="${h}">Libre · reservar</button></div></div>`;
     }).join('') + cancelados.map((t) =>
       `<div class="fila-hora"><div class="hora">${t.hora}</div><div class="celda"><div class="reserva cancelada">${escapar(t.clienteNombre || '')} (cancelado)</div></div></div>`).join('');
+  }
+
+  async function cargarConfiguracion() {
+    const c = await api('GET', agendaUrl('/api/configuracion'));
+    duracionActual = c.duracionTurno;
+    $('select-duracion').value = String(duracionActual);
   }
 
   async function refrescar() {
@@ -298,7 +337,7 @@
 
   function abrirReserva(hora) {
     horaElegida = hora;
-    $('titulo-reserva').textContent = `Reservar ${hora} · ${titulo.format(aDate(diaSeleccionado))}`;
+    $('titulo-reserva').textContent = `Reservar ${hora} a ${aHora(aMinutos(hora) + duracionActual)} · ${titulo.format(aDate(diaSeleccionado))}`;
     $('modal-reserva').showModal();
     $('select-cliente').focus();
   }
@@ -340,7 +379,16 @@
   $('select-profesional').addEventListener('change', (e) => {
     agendaDe = e.target.value ? Number(e.target.value) : null;
     $('modal-reserva').close();
-    Promise.all([cargarClientes(), refrescar()]).catch((err) => mostrarError(err.message));
+    Promise.all([cargarClientes(), cargarConfiguracion(), refrescar()]).catch((err) => mostrarError(err.message));
+  });
+
+  $('guardar-duracion').addEventListener('click', async () => {
+    mostrarError();
+    try {
+      await api('POST', agendaUrl('/api/configuracion'), { duracionTurno: Number($('select-duracion').value) });
+      await cargarConfiguracion();
+      await dibujarGrilla();
+    } catch (err) { mostrarError(err.message); }
   });
 
   $('tira-dias').addEventListener('click', (e) => {

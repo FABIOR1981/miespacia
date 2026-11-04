@@ -1,7 +1,10 @@
 'use strict';
 /**
- * Lógica de la agenda de miEspacia. Solo conoce la interfaz de persistencia (clientes y turnos);
+ * Lógica de la agenda de miEspacia. Solo conoce la interfaz de persistencia (profesionales, clientes y turnos);
  * no sabe si los datos están en memoria, en una base o en otro lado.
+ *
+ * Reglas: los turnos empiezan en punto o y media, duran lo que tenga configurado el profesional
+ * (60 minutos por defecto, entre 30 y 240 de a 30) y no se pueden superponer.
  */
 
 class ErrorDeNegocio extends Error {
@@ -11,6 +14,7 @@ class ErrorDeNegocio extends Error {
   }
 }
 
+const DURACION_POR_DEFECTO = 60;
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -30,14 +34,33 @@ function validarFecha(fecha) {
 
 function validarHora(hora) {
   if (!HORA.test(String(hora ?? ''))) throw new ErrorDeNegocio('La hora debe tener formato HH:MM');
+  if (aMinutos(hora) % 30 !== 0) throw new ErrorDeNegocio('Los turnos empiezan en punto o y media (HH:00 o HH:30)');
   return hora;
 }
 
+function validarDuracion(duracion) {
+  const n = Number(duracion);
+  if (!Number.isInteger(n) || n < 30 || n > 240 || n % 30 !== 0) {
+    throw new ErrorDeNegocio('La duración debe ser de 30 a 240 minutos, de a 30');
+  }
+  return n;
+}
+
+function aMinutos(hora) {
+  const [h, m] = String(hora).split(':').map(Number);
+  return h * 60 + m;
+}
+
 /**
- * @param {{ clientes: object, turnos: object }} persistencia la interfaz de persistencia
+ * @param {{ profesionales: object, clientes: object, turnos: object }} persistencia la interfaz de persistencia
  */
 function crearAgenda(persistencia) {
-  const { clientes, turnos } = persistencia;
+  const { profesionales, clientes, turnos } = persistencia;
+
+  async function duracionDe(profesionalId) {
+    const cuenta = await profesionales.obtener(profesionalId);
+    return cuenta?.duracionTurno ?? DURACION_POR_DEFECTO;
+  }
 
   return {
     async listarClientes(profesionalId) {
@@ -59,6 +82,16 @@ function crearAgenda(persistencia) {
       return turnos.listarRango(profesionalId, desde, hasta);
     },
 
+    async obtenerConfiguracion(profesionalId) {
+      return { duracionTurno: await duracionDe(profesionalId) };
+    },
+
+    async cambiarDuracion(profesionalId, duracion) {
+      const cuenta = await profesionales.actualizar(profesionalId, { duracionTurno: validarDuracion(duracion) });
+      if (!cuenta) throw new ErrorDeNegocio('El profesional no existe', 404);
+      return { duracionTurno: cuenta.duracionTurno };
+    },
+
     async agendarTurno(profesionalId, datos = {}) {
       const fecha = validarFecha(datos.fecha);
       const hora = validarHora(datos.hora);
@@ -66,12 +99,21 @@ function crearAgenda(persistencia) {
       const cliente = await clientes.obtener(profesionalId, Number(datos.clienteId));
       if (!cliente) throw new ErrorDeNegocio('El cliente no existe', 404);
 
-      const ocupados = await turnos.listarRango(profesionalId, fecha, fecha);
-      if (ocupados.some((t) => !t.cancelado && t.hora === hora)) {
-        throw new ErrorDeNegocio('Ya hay un turno en ese horario', 409);
-      }
+      const duracion = await duracionDe(profesionalId);
+      const inicio = aMinutos(hora);
+      const fin = inicio + duracion;
 
-      return turnos.crear(profesionalId, { fecha, hora, clienteId: cliente.id, clienteNombre: cliente.nombre });
+      const delDia = await turnos.listarRango(profesionalId, fecha, fecha);
+      const choca = delDia.some((t) => {
+        if (t.cancelado) return false;
+        const ti = aMinutos(t.hora);
+        return inicio < ti + t.duracion && ti < fin;
+      });
+      if (choca) throw new ErrorDeNegocio('Ese horario se superpone con otro turno', 409);
+
+      return turnos.crear(profesionalId, {
+        fecha, hora, duracion, clienteId: cliente.id, clienteNombre: cliente.nombre,
+      });
     },
 
     async cancelarTurno(profesionalId, id) {

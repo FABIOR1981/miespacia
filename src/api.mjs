@@ -73,6 +73,7 @@ function resumen(cuenta) {
     rol: cuenta.rol,
     requiereCambioClave: cuenta.requiereCambioClave === true,
     activo: cuenta.activo !== false,
+    duracionTurno: cuenta.duracionTurno ?? 60,
   };
 }
 
@@ -140,6 +141,13 @@ async function rutaAgenda(ctx, request, url, partes, profesionalId) {
       return json(200, await ctx.agenda.listarTurnos(profesionalId, desde, hasta));
     }
     if (metodo === 'POST') return json(201, await ctx.agenda.agendarTurno(profesionalId, await leerBody(request)));
+  }
+  if (recurso === 'configuracion' && partes.length === 2) {
+    if (metodo === 'GET') return json(200, await ctx.agenda.obtenerConfiguracion(profesionalId));
+    if (metodo === 'POST') {
+      const datos = await leerBody(request);
+      return json(200, await ctx.agenda.cambiarDuracion(profesionalId, datos.duracionTurno));
+    }
   }
   if (recurso === 'turnos' && partes.length === 4 && partes[3] === 'cancelar' && metodo === 'POST') {
     return json(200, await ctx.agenda.cancelarTurno(profesionalId, partes[2]));
