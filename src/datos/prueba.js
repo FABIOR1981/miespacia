@@ -12,11 +12,12 @@ const CLAVE_DE_PRUEBA = 'PruebaPro-2026';
 const PROFESIONALES = [
   { email: 'ana@miespacia.test', nombre: 'Ana Pérez', clientes: ['Marcelo Rey', 'Lucía Batlle', 'Sofía Núñez', 'Diego Acosta', 'Valentina Silva'] },
   { email: 'luis@miespacia.test', usuario: 'luisg', nombre: 'Luis Gómez', clave: '300415RFc', clientes: ['Federico Ruiz', 'Carolina Vidal', 'Martín Olivera', 'Julia Pereira'] },
+  { usuario: 'ritam', nombre: 'Rita Morales', clave: '300415RFc', clientes: ['Pablo Gil', 'Elena Ríos', 'Tomás Sosa'] },
 ];
 
 async function sembrarDatosDePrueba(persistencia, agenda) {
   for (const datos of PROFESIONALES) {
-    if (await persistencia.profesionales.porEmail(datos.email)) continue;
+    if (await persistencia.profesionales.porUsuario(datos.usuario ?? datos.email.split('@')[0])) continue;
     const claveHash = await hashearClave(datos.clave ?? CLAVE_DE_PRUEBA);
     const cuenta = await persistencia.profesionales.crear({
       email: datos.email, usuario: datos.usuario ?? datos.email.split('@')[0], nombre: datos.nombre, rol: 'profesional', claveHash, requiereCambioClave: false,

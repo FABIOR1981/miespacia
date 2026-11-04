@@ -31,3 +31,11 @@ test('los datos de prueba incluyen turnos para cada profesional', async () => {
   const r = await pedir('/api/turnos?desde=2000-01-01&hasta=2100-12-31', ana.cookie);
   assert.equal((await r.json()).length, 2);
 });
+
+test('Rita (ritam) está en los datos de prueba y entra con su usuario', async () => {
+  const { PROFESIONALES } = require('../src/datos/prueba');
+  const rita = PROFESIONALES.find((p) => p.usuario === 'ritam');
+  const r = await ingresar('ritam', rita.clave);
+  assert.equal(r.status, 200);
+  assert.equal((await (await pedir('/api/clientes', r.cookie)).json()).length, 3);
+});
