@@ -1,5 +1,5 @@
 import { crearPersistencia } from './persistencia/interface_persistencia.js';
-import { crearAgenda, ErrorDeNegocio } from './logica/agenda.js';
+import { crearAgenda, ErrorDeNegocio, duracionVigente } from './logica/agenda.js';
 import { identificar, ingresar, cookieDeSesion, cookieParaBorrar, exigirAdmin, agendaObjetivo, ErrorDeAcceso } from './logica/acceso.js';
 import { hashearClave, verificarClave, claveTemporal } from './logica/seguridad.js';
 import { sembrarDatosDePrueba } from './datos/prueba.js';
@@ -73,7 +73,7 @@ function resumen(cuenta) {
     rol: cuenta.rol,
     requiereCambioClave: cuenta.requiereCambioClave === true,
     activo: cuenta.activo !== false,
-    duracionTurno: cuenta.duracionTurno ?? 60,
+    duracionTurno: duracionVigente(cuenta, fechaLocal()),
   };
 }
 
@@ -146,7 +146,7 @@ async function rutaAgenda(ctx, request, url, partes, profesionalId) {
     if (metodo === 'GET') return json(200, await ctx.agenda.obtenerConfiguracion(profesionalId));
     if (metodo === 'POST') {
       const datos = await leerBody(request);
-      return json(200, await ctx.agenda.cambiarDuracion(profesionalId, datos.duracionTurno));
+      return json(200, await ctx.agenda.cambiarDuracion(profesionalId, datos.duracionTurno, datos.desde));
     }
   }
   if (recurso === 'turnos' && partes.length === 4 && partes[3] === 'cancelar' && metodo === 'POST') {

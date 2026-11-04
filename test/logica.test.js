@@ -60,14 +60,28 @@ test('solo se agenda en punto o y media', async () => {
   await assert.rejects(agenda.agendarTurno('pro-min', { clienteId: c.id, fecha: '2026-11-05', hora: '10:15' }), /punto o y media/);
 });
 
-test('cada profesional configura su duración y la regla la respeta', async () => {
-  const agenda = nueva();
+test('la duración rige desde la fecha del cambio; los turnos anteriores no cambian', async () => {
   const persistencia = crearPersistencia({ modo: 'memoria' });
   const cuenta = await persistencia.profesionales.crear({ email: 'x@t.test', nombre: 'X', rol: 'profesional' });
   const a = crearAgenda(persistencia);
-  assert.deepEqual(await a.cambiarDuracion(cuenta.id, 30), { duracionTurno: 30 });
   const c = await a.crearCliente(cuenta.id, { nombre: 'C' });
-  await a.agendarTurno(cuenta.id, { clienteId: c.id, fecha: '2026-11-05', hora: '10:00' });
-  await a.agendarTurno(cuenta.id, { clienteId: c.id, fecha: '2026-11-05', hora: '10:30' });
-  await assert.rejects(a.cambiarDuracion(cuenta.id, 45), /30 a 240/);
+
+  // Antes del cambio: 60 minutos
+  const antes = await a.agendarTurno(cuenta.id, { clienteId: c.id, fecha: '2026-11-04', hora: '10:00' });
+  assert.equal(antes.duracion, 60);
+
+  // Desde el 2026-11-10, 30 minutos
+  const cfg = await a.cambiarDuracion(cuenta.id, 30, '2026-11-10');
+  assert.equal(cfg.historial.length, 1);
+
+  const despues = await a.agendarTurno(cuenta.id, { clienteId: c.id, fecha: '2026-11-10', hora: '10:00' });
+  assert.equal(despues.duracion, 30);
+  await a.agendarTurno(cuenta.id, { clienteId: c.id, fecha: '2026-11-10', hora: '10:30' });
+
+  // El turno anterior conserva sus 60 minutos
+  const dia4 = await a.listarTurnos(cuenta.id, '2026-11-04', '2026-11-04');
+  assert.equal(dia4[0].duracion, 60);
+
+  await assert.rejects(a.cambiarDuracion(cuenta.id, 45, '2026-11-10'), /30 a 240/);
+  await assert.rejects(a.cambiarDuracion(cuenta.id, 30, '2001-01-01'), /fecha pasada/);
 });
