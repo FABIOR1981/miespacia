@@ -46,6 +46,11 @@
     .detalle { color: var(--tinta-suave); font-size: .9rem; }
     .inactivo { color: var(--tinta-suave); text-decoration: line-through; }
     .selector { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .menu { display: flex; gap: 6px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio-tarjeta); padding: 6px; }
+    .menu button { flex: 1; min-height: 40px; border: 0; border-radius: 10px; background: transparent; color: var(--tinta-suave); font: inherit; font-weight: 600; }
+    .menu button[aria-current="page"] { background: var(--pino-claro); color: var(--pino-oscuro); }
+    .fila label { display: grid; gap: 4px; flex: 1 1 200px; font-size: .9rem; color: var(--tinta-suave); }
+    .fila label input { flex: none; width: 100%; }
     .selector select { min-height: 42px; padding: 0 12px; border: 1.5px solid var(--linea-fuerte); border-radius: var(--radio-campo); background: var(--papel); }
   </style>
 </head>
@@ -62,8 +67,8 @@
     <section class="panel" id="panel-ingreso" hidden>
       <h2>Ingresar</h2>
       <form id="form-ingreso" class="fila">
-        <input type="email" name="email" placeholder="Email" required autocomplete="username">
-        <input type="password" name="clave" placeholder="Clave" required autocomplete="current-password">
+        <label>Email<input type="email" name="email" required autocomplete="username"></label>
+        <label>Clave<input type="password" name="clave" required autocomplete="current-password"></label>
         <button class="boton boton-primario">Ingresar</button>
       </form>
     </section>
@@ -72,13 +77,19 @@
       <h2>Cambiá tu clave para continuar</h2>
       <p class="detalle">La clave que te dieron es temporal. Elegí una propia de al menos 8 caracteres.</p>
       <form id="form-clave" class="fila">
-        <input type="password" name="actual" placeholder="Clave actual" required autocomplete="current-password">
-        <input type="password" name="nueva" placeholder="Clave nueva" required minlength="8" autocomplete="new-password">
+        <label>Clave actual<input type="password" name="actual" required autocomplete="current-password"></label>
+        <label>Clave nueva (mínimo 8 caracteres)<input type="password" name="nueva" required minlength="8" autocomplete="new-password"></label>
         <button class="boton boton-primario">Cambiar clave</button>
       </form>
     </section>
 
     <div id="app" hidden>
+      <nav class="menu" aria-label="Secciones">
+        <button data-vista="agenda" aria-current="page">Agenda</button>
+        <button data-vista="clientes">Clientes</button>
+        <button data-vista="profesionales" id="menu-profesionales" hidden>Profesionales</button>
+      </nav>
+
       <section class="panel" id="selector-agenda" hidden>
         <div class="selector">
           <label for="select-profesional">Agenda de:</label>
@@ -86,6 +97,7 @@
         </div>
       </section>
 
+      <div class="vista" data-vista="agenda">
       <div class="cabecera-dia">
         <div class="fecha-actual" id="fecha-actual"></div>
         <div class="nav-fecha">
@@ -107,7 +119,9 @@
         </form>
       </section>
 
-      <section class="panel">
+      </div>
+
+      <section class="panel vista" data-vista="clientes">
         <h2>Clientes</h2>
         <form id="form-cliente" class="fila">
           <input name="nombre" placeholder="Nombre" required>
@@ -118,7 +132,7 @@
         <ul class="lista" id="lista-clientes"></ul>
       </section>
 
-      <section class="panel" id="panel-admin" hidden>
+      <section class="panel vista" data-vista="profesionales" id="panel-admin" hidden>
         <h2>Profesionales</h2>
         <form id="form-profesional" class="fila">
           <input name="nombre" placeholder="Nombre" required>
@@ -201,11 +215,24 @@
     mostrar('app');
     const esAdmin = yo.rol === 'admin';
     $('selector-agenda').hidden = !esAdmin;
-    $('panel-admin').hidden = !esAdmin;
+    $('menu-profesionales').hidden = !esAdmin;
     if (esAdmin) await cargarProfesionales();
-    await cargarClientes();
-    await refrescar();
+    mostrarVista('agenda');
   }
+
+  /** Muestra una sola sección del menú y carga sus datos. */
+  function mostrarVista(nombre) {
+    document.querySelectorAll('.vista').forEach((el) => { el.hidden = el.dataset.vista !== nombre; });
+    document.querySelectorAll('.menu button').forEach((b) => b.setAttribute('aria-current', b.dataset.vista === nombre ? 'page' : 'false'));
+    mostrarError();
+    const cargar = nombre === 'clientes' ? cargarClientes : nombre === 'profesionales' ? cargarProfesionales : refrescar;
+    cargar().catch((err) => mostrarError(err.message));
+  }
+
+  $('menu-profesionales').parentElement.addEventListener('click', (e) => {
+    const boton = e.target.closest('[data-vista]');
+    if (boton) mostrarVista(boton.dataset.vista);
+  });
 
   async function cargarProfesionales() {
     profesionales = await api('GET', '/api/profesionales');
