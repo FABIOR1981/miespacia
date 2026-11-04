@@ -37,7 +37,13 @@
     .dia-numero { font-size: 1.15rem; font-weight: 650; }
     .dia[aria-pressed="true"] { background: var(--activo-fondo); border-color: var(--activo-fondo); color: #fff; }
     .dia[aria-pressed="true"] .dia-nombre { color: var(--sobre-tinta); }
-    .grilla { display: grid; grid-template-columns: 64px 1fr; grid-auto-rows: 34px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio-tarjeta); overflow: hidden; }
+    .grilla { display: grid; grid-template-columns: 1fr; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio-tarjeta); overflow: hidden; }
+    .columna { display: grid; grid-template-columns: 64px 1fr; grid-auto-rows: 34px; align-content: start; min-width: 0; }
+    @media (min-width: 720px) {
+      .grilla { grid-template-columns: 1fr 1fr; }
+      .columna + .columna { border-left: 1px solid var(--linea); }
+    }
+    .reserva-bloque.continua { color: var(--tinta-suave); }
     .hora { border-right: 1px solid var(--linea); padding: 4px 12px 0; text-align: left; font-size: .95rem; font-weight: 650; color: var(--tinta); font-variant-numeric: tabular-nums; }
     .hora.en-punto, .celda-libre.en-punto { border-top: 1px solid var(--linea-fuerte); }
     .hora.media, .celda-libre.media { border-top: 1px dashed var(--linea); }
@@ -481,24 +487,50 @@
     const turnos = await api('GET', agendaUrl('/api/turnos', { desde: diaSeleccionado, hasta: diaSeleccionado }));
     const activos = turnos.filter((t) => !t.cancelado);
     const cancelados = turnos.filter((t) => t.cancelado);
-    const HORAS = horasParaMostrar(activos);
-    const cubierto = (m) => activos.some((t) => aMinutos(t.hora) <= m && m < aMinutos(t.hora) + t.duracion);
-    const comienza = Object.fromEntries(activos.map((t) => [t.hora, t]));
+    const horas = horasParaMostrar(activos);
 
-    $('grilla').innerHTML = HORAS.map((h, i) => {
-      const fila = i + 1;
-      const m = aMinutos(h);
-      const tramo = h.endsWith(':00') ? 'en-punto' : 'media';
-      const hora = `<div class="hora ${tramo}" style="grid-row:${fila}">${h}</div>`;
-      const t = comienza[h];
-      if (t) {
-        return hora + `<div class="reserva-bloque" style="grid-row:${fila} / span ${t.duracion / 30}">
-          <div class="reserva-texto"><strong>${escapar(t.clienteNombre || '')}</strong><span class="reserva-hora">${h} – ${aHora(m + t.duracion)}</span></div>
-          <button class="boton boton-secundario" data-cancelar="${t.id}">Cancelar</button></div>`;
+    // Dos columnas: la primera mitad del día a la izquierda y el resto a la derecha.
+    const mitad = Math.ceil(horas.length / 2);
+    const columnaDe = (i) => (i < mitad ? 0 : 1);
+    const filaDe = (i) => (i < mitad ? i : i - mitad) + 1;
+    const columnas = [[], []];
+    const indice = Object.fromEntries(horas.map((h, i) => [h, i]));
+    const ocupado = new Set();
+
+    for (const t of activos) {
+      const inicio = indice[t.hora];
+      const n = t.duracion / 30;
+      for (let j = inicio; j < inicio + n; j++) ocupado.add(j);
+    }
+
+    horas.forEach((h, i) => {
+      columnas[columnaDe(i)].push(`<div class="hora" style="grid-row:${filaDe(i)}">${h}</div>`);
+      if (!ocupado.has(i)) {
+        columnas[columnaDe(i)].push(`<div class="celda-libre" style="grid-row:${filaDe(i)}"><button class="libre" data-hora="${h}">Libre · reservar</button></div>`);
       }
-      if (cubierto(m)) return hora; // la franja ya la ocupa la reserva que empezó antes
-      return hora + `<div class="celda-libre ${tramo}" style="grid-row:${fila}"><button class="libre" data-hora="${h}">Libre · reservar</button></div>`;
-    }).join('');
+    });
+
+    // Cada reserva se dibuja como bloque; si cruza el medio del día, sigue en la otra columna.
+    for (const t of activos) {
+      const inicio = indice[t.hora];
+      const n = t.duracion / 30;
+      const fin = inicio + n;
+      let j = inicio;
+      while (j < fin) {
+        const c = columnaDe(j);
+        let k = j;
+        while (k < fin && columnaDe(k) === c) k++;
+        const primero = j === inicio;
+        const contenido = primero
+          ? `<div class="reserva-texto"><strong>${escapar(t.clienteNombre || '')}</strong><span class="reserva-hora">${t.hora} – ${aHora(aMinutos(t.hora) + t.duracion)}</span></div>
+             <button class="boton boton-secundario" data-cancelar="${t.id}">Cancelar</button>`
+          : '';
+        columnas[c].push(`<div class="reserva-bloque ${primero ? '' : 'continua'}" style="grid-row:${filaDe(j)} / span ${k - j}">${contenido}</div>`);
+        j = k;
+      }
+    }
+
+    $('grilla').innerHTML = `<div class="columna">${columnas[0].join('')}</div><div class="columna">${columnas[1].join('')}</div>`;
 
     $('cancelados').textContent = cancelados.length
       ? 'Cancelados: ' + cancelados.map((t) => `${t.clienteNombre || ''} ${t.hora}`).join(' · ')
