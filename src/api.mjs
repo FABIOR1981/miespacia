@@ -102,9 +102,8 @@ async function validarIdentidad(ctx, datos, idActual = null) {
   if (!nombre) throw new ErrorDeNegocio('El nombre es obligatorio');
   const email = String(datos.email ?? '').trim().toLowerCase();
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new ErrorDeNegocio('El email no es válido');
-  const usuarioIndicado = String(datos.usuario ?? '').trim().toLowerCase();
-  if (!usuarioIndicado && !email) throw new ErrorDeNegocio('Indicá un usuario o un email');
-  const usuario = usuarioIndicado || usuarioDesdeEmail(email);
+  const usuario = String(datos.usuario ?? '').trim().toLowerCase();
+  if (!usuario) throw new ErrorDeNegocio('El usuario es obligatorio');
   if (!/^[a-z0-9._-]{3,30}$/.test(usuario)) {
     throw new ErrorDeNegocio('El usuario tiene de 3 a 30 caracteres: letras, números, punto, guion o guion bajo');
   }
