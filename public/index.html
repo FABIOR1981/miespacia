@@ -556,10 +556,13 @@
     const horas = horasParaMostrar(activos);
 
     // Dos columnas: la primera mitad del día a la izquierda y el resto a la derecha.
-    // Dinámico: el corte cae en la primera hora en punto después de la mitad del horario.
+    // Dinámico y equilibrado: el corte es la hora en punto más cercana a la mitad del horario.
+    // Si quedan dos igual de cerca, se elige la más tarde (la columna izquierda llega a la media hora).
     const medio = horas.length / 2;
-    const corte = horas.findIndex((h, i) => i > medio && h.endsWith(':00'));
-    const mitad = corte > 0 ? corte : Math.ceil(medio);
+    const cortes = horas.map((h, i) => i).filter((i) => i > 0 && horas[i].endsWith(':00'));
+    const mitad = cortes.length
+      ? cortes.reduce((a, b) => (Math.abs(b - medio) <= Math.abs(a - medio) ? b : a))
+      : Math.ceil(medio);
     const columnaDe = (i) => (i < mitad ? 0 : 1);
     const filaDe = (i) => (i < mitad ? i : i - mitad) + 1;
     const columnas = [[], []];
