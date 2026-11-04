@@ -223,9 +223,17 @@
     </header>
     <div class="hoja-cuerpo">
       <form id="form-editar-profesional" novalidate>
-        <div class="campo"><label for="editar-nombre">Nombre</label><input id="editar-nombre" name="nombre" required></div>
-        <div class="campo"><label for="editar-usuario">Usuario</label><input id="editar-usuario" name="usuario" required></div>
+        <div class="campo"><label for="editar-nombre">Nombre</label><input id="editar-nombre" name="nombre" type="text" required></div>
+        <div class="campo"><label for="editar-usuario">Usuario</label><input id="editar-usuario" name="usuario" type="text" required></div>
         <div class="campo"><label for="editar-email">Email</label><input id="editar-email" name="email" type="email" required></div>
+        <div class="campo"><label for="editar-duracion">Duración de las reservas</label><select id="editar-duracion" name="duracionTurno"></select></div>
+        <fieldset class="campo">
+          <legend>Horario de la agenda</legend>
+          <div class="fila">
+            <label>Desde<select id="editar-desde"></select></label>
+            <label>Hasta<select id="editar-hasta"></select></label>
+          </div>
+        </fieldset>
         <div class="hoja-acciones">
           <button class="boton boton-primario">Guardar</button>
           <button class="boton boton-secundario" type="button" id="volver-profesional">Cancelar</button>
@@ -390,6 +398,9 @@
     $('editar-nombre').value = p.nombre;
     $('editar-usuario').value = p.usuario || '';
     $('editar-email').value = p.email;
+    $('editar-duracion').innerHTML = opcionesDuracion(p.duracionTurno);
+    $('editar-desde').innerHTML = opcionesHora(p.horario.desde);
+    $('editar-hasta').innerHTML = opcionesHora(p.horario.hasta);
     $('modal-profesional').showModal();
   }
 
@@ -399,11 +410,17 @@
     e.preventDefault();
     mostrarError();
     try {
-      const datos = Object.fromEntries(new FormData(e.target));
+      const datos = {
+        nombre: $('editar-nombre').value,
+        usuario: $('editar-usuario').value,
+        email: $('editar-email').value,
+        duracionTurno: Number($('editar-duracion').value),
+        horario: { desde: $('editar-desde').value, hasta: $('editar-hasta').value },
+      };
       const p = await api('POST', `/api/profesionales/${editandoId}/editar`, datos);
       $('modal-profesional').close();
       await cargarProfesionales();
-      mostrarClaveTemporal(`Datos actualizados: ${p.nombre} · @${p.usuario}`);
+      mostrarClaveTemporal(`Datos actualizados: ${p.nombre} · @${p.usuario} · ${p.duracionTurno} min · ${p.horario.desde} a ${p.horario.hasta}`);
     } catch (err) { mostrarError(err.message); }
   });
 
@@ -422,9 +439,6 @@
         ${p.activo ? `
           <div class="profe-acciones">
             <button class="boton boton-secundario" data-editar="${p.id}">Editar</button>
-            <span class="etiqueta">Duración</span>
-            <select data-duracion="${p.id}" aria-label="Duración de ${escapar(p.nombre)}">${opcionesDuracion(p.duracionTurno)}</select>
-            <button class="boton boton-secundario" data-guardar="${p.id}">Guardar duración</button>
             ${p.id !== yo.id ? `
               <button class="boton boton-secundario" data-reiniciar="${p.id}">Reiniciar clave</button>
               <button class="boton boton-secundario" data-desactivar="${p.id}">Desactivar</button>` : ''}
@@ -611,17 +625,11 @@
   $('lista-profesionales').addEventListener('click', async (e) => {
     const reiniciar = e.target.dataset.reiniciar;
     const desactivar = e.target.dataset.desactivar;
-    const guardar = e.target.dataset.guardar;
     const editar = e.target.dataset.editar;
     if (editar) { abrirEditarProfesional(Number(editar)); return; }
-    if (!reiniciar && !desactivar && !guardar) return;
+    if (!reiniciar && !desactivar) return;
     mostrarError();
     try {
-      if (guardar) {
-        const duracion = Number(document.querySelector(`[data-duracion="${guardar}"]`).value);
-        await api('POST', `/api/configuracion?profesional=${guardar}`, { duracionTurno: duracion });
-        mostrarClaveTemporal(`Duración actualizada: ${duracion} minutos.`);
-      }
       if (reiniciar) {
         const r = await api('POST', `/api/profesionales/${reiniciar}/reiniciar-clave`);
         mostrarClaveTemporal(`Nueva clave temporal: ${r.claveTemporal} (se muestra una sola vez)`);

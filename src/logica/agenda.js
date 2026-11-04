@@ -175,4 +175,4 @@ function crearAgenda(persistencia) {
   };
 }
 
-module.exports = { crearAgenda, ErrorDeNegocio, duracionVigente };
+module.exports = { crearAgenda, ErrorDeNegocio, duracionVigente, horarioVigente };
