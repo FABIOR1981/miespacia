@@ -60,11 +60,6 @@
     .selector { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .fila label { display: grid; gap: 4px; flex: 1 1 200px; font-size: .9rem; color: var(--tinta-suave); }
     .fila label input { flex: none; width: 100%; }
-    .modal { border: 0; border-radius: var(--radio-tarjeta); padding: 20px; width: min(420px, calc(100vw - 32px)); background: var(--papel); color: var(--tinta); box-shadow: 0 12px 40px rgba(0, 0, 0, .25); }
-    .modal::backdrop { background: var(--telon); }
-    .modal h2 { margin: 0 0 12px; font-size: 1.05rem; }
-    .modal form { display: grid; gap: 12px; }
-    .modal .acciones { display: flex; gap: 8px; justify-content: flex-end; }
     .fila-hora.continua .celda { background: var(--pino-claro); border-left: 4px solid var(--pino); }
     .fila-hora.continua .hora { color: transparent; }
     .fila-hora.continua { border-bottom-color: transparent; }
@@ -131,15 +126,29 @@
       <div class="tira-dias" id="tira-dias" role="group" aria-label="Días"></div>
       <section class="grilla" id="grilla" aria-label="Horarios del día"></section>
 
-      <dialog class="modal" id="modal-reserva" aria-labelledby="titulo-reserva">
-        <h2 id="titulo-reserva"></h2>
-        <form id="form-reserva">
-          <label>Cliente<select name="clienteId" id="select-cliente" required></select></label>
-          <div class="acciones">
-            <button type="button" class="boton boton-secundario" id="cerrar-reserva">Cancelar</button>
-            <button class="boton boton-primario">Reservar</button>
-          </div>
-        </form>
+      <dialog class="hoja" id="modal-reserva" aria-labelledby="titulo-reserva">
+        <header class="hoja-cabecera">
+          <h2 id="titulo-reserva">Reservar</h2>
+          <button class="boton-icono" type="button" id="cerrar-reserva" aria-label="Cerrar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </header>
+        <div class="hoja-cuerpo">
+          <form id="form-reserva" novalidate>
+            <dl class="datos">
+              <dt>Día</dt><dd id="reserva-dia"></dd>
+              <dt>Horario</dt><dd id="reserva-horario"></dd>
+            </dl>
+            <div class="campo">
+              <label for="select-cliente">Cliente</label>
+              <select id="select-cliente" required></select>
+            </div>
+            <div class="hoja-acciones">
+              <button class="boton boton-primario" type="submit">Reservar</button>
+              <button class="boton boton-secundario" type="button" id="volver-reserva">Volver</button>
+            </div>
+          </form>
+        </div>
       </dialog>
 
       </div>
@@ -279,7 +288,7 @@
     const cargar = nombre === 'clientes' ? cargarClientes
       : nombre === 'profesionales' ? cargarProfesionales
       : nombre === 'perfil' ? cargarPerfil
-      : async () => { await cargarConfiguracion(); await refrescar(); };
+      : async () => { await Promise.all([cargarClientes(), cargarConfiguracion()]); await refrescar(); };
     cargar().catch((err) => mostrarError(err.message));
   }
 
@@ -395,7 +404,8 @@
 
   function abrirReserva(hora) {
     horaElegida = hora;
-    $('titulo-reserva').textContent = `Reservar ${hora} a ${aHora(aMinutos(hora) + duracionActual)} · ${titulo.format(aDate(diaSeleccionado))}`;
+    $('reserva-dia').textContent = titulo.format(aDate(diaSeleccionado));
+    $('reserva-horario').textContent = `${hora} a ${aHora(aMinutos(hora) + duracionActual)} (${duracionActual} min)`;
     $('modal-reserva').showModal();
     $('select-cliente').focus();
   }
@@ -472,6 +482,7 @@
     } catch (err) { mostrarError(err.message); }
   });
   $('cerrar-reserva').addEventListener('click', () => { $('modal-reserva').close(); });
+  $('volver-reserva').addEventListener('click', () => { $('modal-reserva').close(); });
 
   $('form-cliente').addEventListener('submit', async (e) => {
     e.preventDefault();
