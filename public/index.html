@@ -283,25 +283,46 @@
         </form>
       </section>
 
-      <section class="panel vista" data-vista="seguimiento" hidden>
-        <h2>Cancelaciones</h2>
-        <p class="detalle">Las reservas canceladas en el período, según cuándo se cancelaron, con su motivo.</p>
-        <form id="form-seguimiento" class="fila">
-          <label>Desde<input type="date" id="seg-desde" required></label>
-          <label>Hasta<input type="date" id="seg-hasta" required></label>
-          <button class="boton boton-primario">Ver</button>
-        </form>
-        <ul class="lista" id="lista-cancelaciones"></ul>
+      <section class="vista" data-vista="seguimiento" hidden>
+        <div id="seg-menu">
+          <h2>Seguimiento</h2>
+          <p class="intro">Elegí qué querés consultar.</p>
+          <div class="informes-menu">
+            <button class="informe-opcion" type="button" data-informe="seg-cancelaciones">
+              <strong class="informe-opcion-titulo">Cancelaciones</strong>
+              <span class="informe-opcion-texto">Las reservas canceladas en un período, según cuándo se cancelaron, con su motivo.</span>
+            </button>
+            <button class="informe-opcion" type="button" data-informe="seg-reservas">
+              <strong class="informe-opcion-titulo" data-plantilla="Reservas por {p}">Reservas por cliente</strong>
+              <span class="informe-opcion-texto">Todas las reservas de una persona en un período, incluidas las canceladas.</span>
+            </button>
+          </div>
+        </div>
 
-        <h2 data-plantilla="Reservas por {p}">Reservas por cliente</h2>
-        <p class="detalle">Todas las reservas de una persona en el período, incluidas las canceladas.</p>
-        <form id="form-reservas-cliente" class="fila">
-          <label><span data-plantilla="{S}">Cliente</span><select id="rc-cliente" required></select></label>
-          <label>Desde<input type="date" id="rc-desde" required></label>
-          <label>Hasta<input type="date" id="rc-hasta" required></label>
-          <button class="boton boton-primario">Ver</button>
-        </form>
-        <ul class="lista" id="lista-reservas-cliente"></ul>
+        <section class="panel informe" id="seg-cancelaciones" hidden>
+          <button class="boton boton-texto informe-volver" type="button" data-volver>← Volver a Seguimiento</button>
+          <h2>Cancelaciones</h2>
+          <p class="detalle">Las reservas canceladas en el período, según cuándo se cancelaron, con su motivo.</p>
+          <form id="form-seguimiento" class="fila">
+            <label>Desde<input type="date" id="seg-desde" required></label>
+            <label>Hasta<input type="date" id="seg-hasta" required></label>
+            <button class="boton boton-primario">Ver</button>
+          </form>
+          <ul class="lista" id="lista-cancelaciones"></ul>
+        </section>
+
+        <section class="panel informe" id="seg-reservas" hidden>
+          <button class="boton boton-texto informe-volver" type="button" data-volver>← Volver a Seguimiento</button>
+          <h2 data-plantilla="Reservas por {p}">Reservas por cliente</h2>
+          <p class="detalle">Todas las reservas de una persona en el período, incluidas las canceladas.</p>
+          <form id="form-reservas-cliente" class="fila">
+            <label><span data-plantilla="{S}">Cliente</span><select id="rc-cliente" required></select></label>
+            <label>Desde<input type="date" id="rc-desde" required></label>
+            <label>Hasta<input type="date" id="rc-hasta" required></label>
+            <button class="boton boton-primario">Ver</button>
+          </form>
+          <ul class="lista" id="lista-reservas-cliente"></ul>
+        </section>
       </section>
 
       <section class="panel vista" data-vista="clientes">
@@ -614,7 +635,7 @@
     const cargar = nombre === 'clientes' ? cargarClientes
       : nombre === 'profesionales' ? cargarProfesionales
       : nombre === 'perfil' ? cargarPerfil
-      : nombre === 'seguimiento' ? cargarSeguimiento
+      : nombre === 'seguimiento' ? async () => volverSeguimiento()
       : async () => { await Promise.all([cargarClientes(), cargarConfiguracion()]); await refrescar(); };
     cargar().catch((err) => mostrarError(err.message));
   }
@@ -626,12 +647,27 @@
 
   function fechaEsp(iso) { return iso.split('-').reverse().join('/'); }
 
-  async function cargarSeguimiento() {
+  function volverSeguimiento() {
+    $('seg-menu').hidden = false;
+    document.querySelectorAll('.informe').forEach((el) => { el.hidden = true; });
+  }
+
+  function abrirInforme(id) {
+    $('seg-menu').hidden = true;
+    document.querySelectorAll('.informe').forEach((el) => { el.hidden = el.id !== id; });
+    mostrarError();
+    const cargar = id === 'seg-cancelaciones' ? cargarCancelaciones : cargarReservasCliente;
+    cargar().catch((err) => mostrarError(err.message));
+  }
+
+  document.querySelectorAll('[data-informe]').forEach((b) => b.addEventListener('click', () => abrirInforme(b.dataset.informe)));
+  document.querySelectorAll('[data-volver]').forEach((b) => b.addEventListener('click', volverSeguimiento));
+
+  async function cargarCancelaciones() {
     if (!$('seg-hasta').value) {
       $('seg-hasta').value = fechaDesplazada(0);
       $('seg-desde').value = sumarDias(fechaDesplazada(0), -30);
     }
-    await cargarReservasCliente();
     const lista = await api('GET', agendaUrl('/api/seguimiento/cancelaciones', { desde: $('seg-desde').value, hasta: $('seg-hasta').value }));
     $('lista-cancelaciones').innerHTML = lista.length
       ? lista.map((c) => `<li>
@@ -672,7 +708,7 @@
   $('form-seguimiento').addEventListener('submit', (e) => {
     e.preventDefault();
     mostrarError();
-    cargarSeguimiento().catch((err) => mostrarError(err.message));
+    cargarCancelaciones().catch((err) => mostrarError(err.message));
   });
 
   // Colores de la aplicación: se aplican al tocar y quedan guardados en este dispositivo.
