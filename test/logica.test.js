@@ -210,3 +210,19 @@ test('reservas de un cliente en un período, con las canceladas y sin las de otr
   await assert.rejects(agenda.listarReservasDeCliente('pro-1', 999, '2026-11-01', '2026-11-30'), /no existe/);
   await assert.rejects(agenda.listarReservasDeCliente('pro-2', ana.id, '2026-11-01', '2026-11-30'), /no existe/);
 });
+
+test('no se puede cargar dos veces al mismo cliente: por nombre (sin acentos ni mayúsculas) o por teléfono', async () => {
+  const agenda = nueva();
+  const ana = await agenda.crearCliente('pro-1', { nombre: 'Ana Pérez', telefono: '099 000 001' });
+  await assert.rejects(agenda.crearCliente('pro-1', { nombre: '  ana   perez ' }), /ya tenés un cliente con ese nombre/i);
+  await assert.rejects(agenda.crearCliente('pro-1', { nombre: 'Otra', telefono: '099-000-001' }), /teléfono ya está cargado/i);
+  // los teléfonos cortos no se comparan (podrían ser de cualquiera)
+  await agenda.crearCliente('pro-1', { nombre: 'Juan', telefono: '1234' });
+  await agenda.crearCliente('pro-1', { nombre: 'Lucía', telefono: '1234' });
+  // al editar, un cliente puede guardarse a sí mismo, pero no tomar el nombre de otro
+  await agenda.editarCliente('pro-1', ana.id, { nombre: 'Ana Pérez', telefono: '099000001', notas: 'x' });
+  const luis = await agenda.crearCliente('pro-1', { nombre: 'Luis', telefono: '099000002' });
+  await assert.rejects(agenda.editarCliente('pro-1', luis.id, { nombre: 'ANA PEREZ' }), /ya tenés un cliente/i);
+  // otro profesional sí puede tener a una persona con el mismo nombre
+  await agenda.crearCliente('pro-2', { nombre: 'Ana Pérez', telefono: '099 000 001' });
+});
