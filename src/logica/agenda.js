@@ -81,6 +81,11 @@ function aMinutos(hora) {
 // Cómo llama cada profesional a sus clientes en la interfaz.
 const ETIQUETAS_CLIENTES = ['cliente', 'paciente'];
 
+/** Id incremental dentro de una lista (1, 2, 3...). Un id que se quitó no se vuelve a usar en esa lista. */
+function siguienteId(lista) {
+  return Math.max(0, ...lista.map((x) => Number(x.id) || 0)) + 1;
+}
+
 function etiquetaDe(cuenta) {
   return ETIQUETAS_CLIENTES.includes(cuenta.etiquetaClientes) ? cuenta.etiquetaClientes : 'cliente';
 }
@@ -147,7 +152,7 @@ function crearAgenda(persistencia) {
       const cuenta = await profesionales.obtener(profesionalId);
       if (!cuenta) throw new ErrorDeNegocio('El profesional no existe', 404);
       const historial = (cuenta.duraciones ?? []).filter((d) => d.desde !== desde);
-      historial.push({ desde, minutos });
+      historial.push({ id: siguienteId(historial), desde, minutos });
       await profesionales.actualizar(profesionalId, { duraciones: historial });
       return configuracionDe(profesionalId);
     },
@@ -206,8 +211,9 @@ function crearAgenda(persistencia) {
       if (!turno) throw new ErrorDeNegocio('El turno no existe', 404);
       const limpio = textoObligatorio(texto, 'El comentario');
       if (limpio.length > 500) throw new ErrorDeNegocio('El comentario tiene como máximo 500 caracteres');
-      const comentarios = [...(turno.comentarios ?? []), {
-        id: Date.now() + Math.random(), texto: limpio, por: String(autor ?? '').trim() || 'Sin nombre', en: new Date().toISOString(),
+      const existentes = turno.comentarios ?? [];
+      const comentarios = [...existentes, {
+        id: siguienteId(existentes), texto: limpio, por: String(autor ?? '').trim() || 'Sin nombre', en: new Date().toISOString(),
       }];
       await turnos.actualizar(profesionalId, Number(id), { comentarios });
       return comentarios;

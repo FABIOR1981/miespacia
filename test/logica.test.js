@@ -168,3 +168,25 @@ test('un cliente dado de baja no se puede reservar, pero sigue en la lista; al r
   await a.editarCliente(cuenta.id, c.id, { nombre: 'Marta', activo: true });
   await a.agendarTurno(cuenta.id, { clienteId: c.id, fecha: '2026-11-25', hora: '10:00' });
 });
+
+test('los objetos guardados tienen id entero incremental: comentarios y cambios de duración', async () => {
+  const persistencia = crearPersistencia({ modo: 'memoria' });
+  const cuenta = await persistencia.profesionales.crear({ email: 'i@t.test', usuario: 'ids', nombre: 'I', rol: 'profesional' });
+  const a = crearAgenda(persistencia);
+  const c = await a.crearCliente(cuenta.id, { nombre: 'Id' });
+  const t = await a.agendarTurno(cuenta.id, { clienteId: c.id, fecha: '2026-11-26', hora: '10:00' });
+
+  const uno = await a.agregarComentario(cuenta.id, t.id, { texto: 'uno', autor: 'X' });
+  const dos = await a.agregarComentario(cuenta.id, t.id, { texto: 'dos', autor: 'X' });
+  assert.deepEqual(dos.map((x) => x.id), [1, 2]);
+  const quedan = await a.quitarComentario(cuenta.id, t.id, 1);
+  const tres = await a.agregarComentario(cuenta.id, t.id, { texto: 'tres', autor: 'X' });
+  assert.deepEqual(tres.map((x) => x.id), [2, 3]);
+  assert.equal(uno.length, 1);
+  assert.equal(quedan.length, 1);
+
+  await a.cambiarDuracion(cuenta.id, 90, '2026-12-01');
+  await a.cambiarDuracion(cuenta.id, 30, '2026-12-05');
+  const historial = (await a.obtenerConfiguracion(cuenta.id)).historial;
+  assert.deepEqual(historial.map((h) => h.id).sort(), [1, 2]);
+});
