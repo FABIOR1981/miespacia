@@ -7,7 +7,7 @@
  * (60 minutos por defecto, entre 30 y 240 de a 30) y no se pueden superponer.
  */
 
-const { fechaLocal } = require('../fechas');
+const { fechaLocal, fechaDeInstante } = require('../fechas');
 
 class ErrorDeNegocio extends Error {
   constructor(mensaje, estado = 400) {
@@ -219,10 +219,35 @@ function crearAgenda(persistencia) {
       return comentarios;
     },
 
-    async cancelarTurno(profesionalId, id) {
-      const cancelado = await turnos.cancelar(profesionalId, Number(id));
+    async cancelarTurno(profesionalId, id, datos = {}) {
+      const motivo = String(datos.motivo ?? '').trim();
+      if (motivo.length > 300) throw new ErrorDeNegocio('El motivo tiene como máximo 300 caracteres');
+      const cancelacion = { motivo, en: new Date().toISOString(), por: datos.autor || 'Sin nombre' };
+      const cancelado = await turnos.cancelar(profesionalId, Number(id), { cancelacion });
       if (!cancelado) throw new ErrorDeNegocio('El turno no existe', 404);
       return cancelado;
+    },
+
+    /** Reservas canceladas cuya fecha de cancelación cae entre desde y hasta (en Montevideo). */
+    async listarCancelaciones(profesionalId, desde, hasta) {
+      validarFecha(desde);
+      validarFecha(hasta);
+      if (desde > hasta) throw new ErrorDeNegocio('"desde" no puede ser posterior a "hasta"');
+      const todos = await turnos.listarRango(profesionalId, '0000-01-01', '9999-12-31');
+      const nombres = new Map((await clientes.listar(profesionalId)).map((c) => [c.id, c.nombre]));
+      return todos
+        .filter((t) => t.cancelado && t.cancelacion)
+        .filter((t) => fechaDeInstante(t.cancelacion.en) >= desde && fechaDeInstante(t.cancelacion.en) <= hasta)
+        .sort((a, b) => b.cancelacion.en.localeCompare(a.cancelacion.en))
+        .map((t) => ({
+          id: t.id,
+          fecha: t.fecha,
+          hora: t.hora,
+          clienteNombre: nombres.get(t.clienteId) ?? t.clienteNombre,
+          motivo: t.cancelacion.motivo,
+          en: t.cancelacion.en,
+          por: t.cancelacion.por,
+        }));
     },
   };
 }

@@ -193,7 +193,12 @@ async function rutaAgenda(ctx, request, url, partes, profesionalId, actor) {
     }
   }
   if (recurso === 'turnos' && partes.length === 4 && partes[3] === 'cancelar' && metodo === 'POST') {
-    return json(200, await ctx.agenda.cancelarTurno(profesionalId, partes[2]));
+    return json(200, await ctx.agenda.cancelarTurno(profesionalId, partes[2], { ...(await leerBody(request)), autor: actor.nombre }));
+  }
+  if (recurso === 'seguimiento' && partes[2] === 'cancelaciones' && partes.length === 3 && metodo === 'GET') {
+    const desde = url.searchParams.get('desde') || fechaLocal(-30);
+    const hasta = url.searchParams.get('hasta') || fechaLocal();
+    return json(200, await ctx.agenda.listarCancelaciones(profesionalId, desde, hasta));
   }
   if (recurso === 'turnos' && partes.length === 4 && partes[3] === 'comentarios' && metodo === 'POST') {
     const datos = await leerBody(request);

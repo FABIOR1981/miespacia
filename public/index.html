@@ -118,6 +118,7 @@
     <nav class="nav-principal" aria-label="Secciones">
       <button data-vista="agenda" aria-current="page">Agenda</button>
       <button data-vista="clientes" data-plantilla="{P}">Clientes</button>
+      <button data-vista="seguimiento">Seguimiento</button>
       <button data-vista="profesionales" id="menu-profesionales" hidden>Profesionales</button>
     </nav>
     <button class="cuenta-boton" id="boton-perfil" data-vista="perfil" hidden><span class="iniciales" id="iniciales"></span><span class="texto">Mi perfil</span></button>
@@ -206,6 +207,10 @@
         <div class="hoja-cuerpo">
           <p id="resumen-reserva"></p>
           <p class="aviso" id="error-reserva-detalle" hidden></p>
+          <div class="campo">
+            <label for="motivo-cancelacion">Motivo de la cancelación (opcional)</label>
+            <textarea id="motivo-cancelacion" maxlength="300" rows="2" placeholder="Ej.: el cliente avisó que no puede venir"></textarea>
+          </div>
           <div class="hoja-acciones">
             <button class="boton boton-secundario" type="button" id="cancelar-reserva">Cancelar reserva</button>
             <button class="boton boton-secundario" type="button" id="volver-reserva-detalle">Volver</button>
@@ -231,6 +236,17 @@
             <button class="boton boton-primario" type="submit">Agregar comentario</button>
           </div>
         </form>
+      </section>
+
+      <section class="panel vista" data-vista="seguimiento" hidden>
+        <h2>Cancelaciones</h2>
+        <p class="detalle">Las reservas canceladas en el período, según cuándo se cancelaron, con su motivo.</p>
+        <form id="form-seguimiento" class="fila">
+          <label>Desde<input type="date" id="seg-desde" required></label>
+          <label>Hasta<input type="date" id="seg-hasta" required></label>
+          <button class="boton boton-primario">Ver</button>
+        </form>
+        <ul class="lista" id="lista-cancelaciones"></ul>
       </section>
 
       <section class="panel vista" data-vista="clientes">
@@ -471,6 +487,7 @@
     const cargar = nombre === 'clientes' ? cargarClientes
       : nombre === 'profesionales' ? cargarProfesionales
       : nombre === 'perfil' ? cargarPerfil
+      : nombre === 'seguimiento' ? cargarSeguimiento
       : async () => { await Promise.all([cargarClientes(), cargarConfiguracion()]); await refrescar(); };
     cargar().catch((err) => mostrarError(err.message));
   }
@@ -481,6 +498,27 @@
   });
 
   function fechaEsp(iso) { return iso.split('-').reverse().join('/'); }
+
+  async function cargarSeguimiento() {
+    if (!$('seg-hasta').value) {
+      $('seg-hasta').value = fechaDesplazada(0);
+      $('seg-desde').value = sumarDias(fechaDesplazada(0), -30);
+    }
+    const lista = await api('GET', agendaUrl('/api/seguimiento/cancelaciones', { desde: $('seg-desde').value, hasta: $('seg-hasta').value }));
+    $('lista-cancelaciones').innerHTML = lista.length
+      ? lista.map((c) => `<li>
+           <span><strong>${escapar(c.clienteNombre || '')}</strong> · ${fechaEsp(c.fecha)} ${c.hora}</span>
+           <small>Cancelada el ${fechaComentario(c.en)} por ${escapar(c.por || '')}</small>
+           <span>${c.motivo ? escapar(c.motivo) : '<em>Sin motivo</em>'}</span>
+         </li>`).join('')
+      : '<li class="detalle">No hay cancelaciones en este período.</li>';
+  }
+
+  $('form-seguimiento').addEventListener('submit', (e) => {
+    e.preventDefault();
+    mostrarError();
+    cargarSeguimiento().catch((err) => mostrarError(err.message));
+  });
 
   async function cargarPerfil() {
     $('perfil-nombre').textContent = yo.nombre;
@@ -847,6 +885,7 @@
     cerrarPaneles();
     comentandoId = id;
     errorDetalle();
+    $('motivo-cancelacion').value = '';
     const t = turnoActual();
     if (!t) return;
     $('resumen-reserva').textContent = `${t.clienteNombre || ''} · ${t.hora} – ${aHora(aMinutos(t.hora) + t.duracion)}`;
@@ -868,7 +907,7 @@
   $('cancelar-reserva').addEventListener('click', async () => {
     errorDetalle();
     try {
-      await api('POST', agendaUrl(`/api/turnos/${comentandoId}/cancelar`));
+      await api('POST', agendaUrl(`/api/turnos/${comentandoId}/cancelar`), { motivo: $('motivo-cancelacion').value });
       cerrarPaneles();
       await dibujarGrilla();
     } catch (err) { errorDetalle(err.message); }
