@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>miEspacia</title>
   <link rel="stylesheet" href="estilos/base.css">
-  <link rel="stylesheet" href="estilos/agenda.css">
   <link rel="stylesheet" href="estilos/paletas.css">
   <style>
     body { background: var(--bruma); margin: 0; }
@@ -289,7 +288,7 @@
     const cargar = nombre === 'clientes' ? cargarClientes
       : nombre === 'profesionales' ? cargarProfesionales
       : nombre === 'perfil' ? cargarPerfil
-      : async () => { await cargarConfiguracion(); await refrescar(); };
+      : async () => { await Promise.all([cargarClientes(), cargarConfiguracion()]); await refrescar(); };
     cargar().catch((err) => mostrarError(err.message));
   }
 
