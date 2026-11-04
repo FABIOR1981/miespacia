@@ -77,7 +77,7 @@ function resumen(cuenta) {
     activo: cuenta.activo !== false,
     duracionTurno: duracionVigente(cuenta, fechaLocal()),
     horario: horarioVigente(cuenta),
-    etiquetaClientes: cuenta.etiquetaClientes === 'paciente' ? 'paciente' : 'cliente',
+    etiquetaClientes: ['paciente', 'empresa'].includes(cuenta.etiquetaClientes) ? cuenta.etiquetaClientes : 'cliente',
   };
 }
 
