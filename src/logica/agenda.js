@@ -78,6 +78,13 @@ function aMinutos(hora) {
 /**
  * @param {{ profesionales: object, clientes: object, turnos: object }} persistencia la interfaz de persistencia
  */
+// Cómo llama cada profesional a sus clientes en la interfaz.
+const ETIQUETAS_CLIENTES = ['cliente', 'paciente'];
+
+function etiquetaDe(cuenta) {
+  return ETIQUETAS_CLIENTES.includes(cuenta.etiquetaClientes) ? cuenta.etiquetaClientes : 'cliente';
+}
+
 function crearAgenda(persistencia) {
   const { profesionales, clientes, turnos } = persistencia;
 
@@ -88,6 +95,7 @@ function crearAgenda(persistencia) {
       duracionTurno: duracionVigente(cuenta, fechaLocal()),
       historial: [...(cuenta.duraciones ?? [])].sort((a, b) => b.desde.localeCompare(a.desde)),
       horario: horarioVigente(cuenta),
+      etiquetaClientes: etiquetaDe(cuenta),
     };
   }
 
@@ -148,6 +156,14 @@ function crearAgenda(persistencia) {
       const cuenta = await profesionales.obtener(profesionalId);
       if (!cuenta) throw new ErrorDeNegocio('El profesional no existe', 404);
       await profesionales.actualizar(profesionalId, { horario });
+      return configuracionDe(profesionalId);
+    },
+
+    async cambiarEtiquetaClientes(profesionalId, valor) {
+      if (!ETIQUETAS_CLIENTES.includes(valor)) throw new ErrorDeNegocio('Elegí cliente o paciente', 400);
+      const cuenta = await profesionales.obtener(profesionalId);
+      if (!cuenta) throw new ErrorDeNegocio('El profesional no existe', 404);
+      await profesionales.actualizar(profesionalId, { etiquetaClientes: valor });
       return configuracionDe(profesionalId);
     },
 

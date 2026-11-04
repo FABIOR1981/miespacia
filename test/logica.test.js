@@ -124,3 +124,13 @@ test('los comentarios se agregan y quitan de una reserva, con un máximo de 500 
   const [t] = await agenda.listarTurnos('pro-com', '2026-11-05', '2026-11-05');
   assert.equal(t.comentarios.length, 0);
 });
+
+test('cada profesional elige cómo llama a sus clientes: cliente o paciente', async () => {
+  const persistencia = crearPersistencia({ modo: 'memoria' });
+  const cuenta = await persistencia.profesionales.crear({ email: 'e@t.test', nombre: 'E', rol: 'profesional' });
+  const a = crearAgenda(persistencia);
+  assert.equal((await a.obtenerConfiguracion(cuenta.id)).etiquetaClientes, 'cliente');
+  const cfg = await a.cambiarEtiquetaClientes(cuenta.id, 'paciente');
+  assert.equal(cfg.etiquetaClientes, 'paciente');
+  await assert.rejects(a.cambiarEtiquetaClientes(cuenta.id, 'usuario'), /cliente o paciente/);
+});
