@@ -190,3 +190,23 @@ test('los objetos guardados tienen id entero incremental: comentarios y cambios 
   const historial = (await a.obtenerConfiguracion(cuenta.id)).historial;
   assert.deepEqual(historial.map((h) => h.id).sort(), [1, 2]);
 });
+
+test('reservas de un cliente en un período, con las canceladas y sin las de otros', async () => {
+  const agenda = nueva();
+  const ana = await agenda.crearCliente('pro-1', { nombre: 'Ana' });
+  const luis = await agenda.crearCliente('pro-1', { nombre: 'Luis' });
+  await agenda.agendarTurno('pro-1', { clienteId: ana.id, fecha: '2026-11-10', hora: '10:00' });
+  const cancelada = await agenda.agendarTurno('pro-1', { clienteId: ana.id, fecha: '2026-11-03', hora: '09:00' });
+  await agenda.cancelarTurno('pro-1', cancelada.id, { motivo: 'Viaje', autor: 'Luis' });
+  await agenda.agendarTurno('pro-1', { clienteId: luis.id, fecha: '2026-11-05', hora: '11:00' });
+  await agenda.agendarTurno('pro-1', { clienteId: ana.id, fecha: '2026-12-01', hora: '10:00' });
+
+  const datos = await agenda.listarReservasDeCliente('pro-1', ana.id, '2026-11-01', '2026-11-30');
+  assert.equal(datos.clienteNombre, 'Ana');
+  assert.deepEqual(datos.reservas.map((r) => [r.fecha, r.cancelado, r.motivo]), [
+    ['2026-11-03', true, 'Viaje'],
+    ['2026-11-10', false, ''],
+  ]);
+  await assert.rejects(agenda.listarReservasDeCliente('pro-1', 999, '2026-11-01', '2026-11-30'), /no existe/);
+  await assert.rejects(agenda.listarReservasDeCliente('pro-2', ana.id, '2026-11-01', '2026-11-30'), /no existe/);
+});
