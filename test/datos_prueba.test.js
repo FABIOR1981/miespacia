@@ -16,9 +16,10 @@ async function ingresar(email, clave) {
 const pedir = (ruta, cookie) => manejarApi(new Request('http://x' + ruta, { headers: { Cookie: cookie } }), ENV);
 
 test('con DATOS_DE_PRUEBA, Ana y Luis entran y cada uno ve sus clientes', async () => {
-  const { CLAVE_DE_PRUEBA } = require('../src/datos/prueba');
+  const { CLAVE_DE_PRUEBA, PROFESIONALES } = require('../src/datos/prueba');
+  const claveLuis = PROFESIONALES.find((p) => p.usuario === 'luisg').clave;
   const ana = await ingresar('ana@miespacia.test', CLAVE_DE_PRUEBA);
-  const luis = await ingresar('luis@miespacia.test', CLAVE_DE_PRUEBA);
+  const luis = await ingresar('luis@miespacia.test', claveLuis);
   assert.equal(ana.status, 200);
   assert.equal(luis.status, 200);
   assert.equal((await (await pedir('/api/clientes', ana.cookie)).json()).length, 5);
