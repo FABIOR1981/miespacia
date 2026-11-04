@@ -96,6 +96,7 @@
     @media (min-width: 720px) { .perfil-tarjetas { grid-template-columns: 1fr 1fr; } }
     .perfil-tarjeta { display: grid; gap: 12px; align-content: start; padding: 16px; border: 1px solid var(--linea); border-radius: 12px; }
     .perfil-tarjeta h3 { margin: 0; }
+    .perfil-tarjeta.ancha { grid-column: 1 / -1; }
     .perfil-tarjeta p { margin: 0; }
     .perfil-tarjeta form { display: grid; gap: 12px; }
     .perfil-campos { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
@@ -116,7 +117,7 @@
     <span class="marca">miEspacia</span>
     <nav class="nav-principal" aria-label="Secciones">
       <button data-vista="agenda" aria-current="page">Agenda</button>
-      <button data-vista="clientes">Clientes</button>
+      <button data-vista="clientes" data-plantilla="{P}">Clientes</button>
       <button data-vista="profesionales" id="menu-profesionales" hidden>Profesionales</button>
     </nav>
     <button class="cuenta-boton" id="boton-perfil" data-vista="perfil" hidden><span class="iniciales" id="iniciales"></span><span class="texto">Mi perfil</span></button>
@@ -182,7 +183,7 @@
               <dt>Horario</dt><dd id="reserva-horario"></dd>
             </dl>
             <div class="campo">
-              <label for="select-cliente">Cliente</label>
+              <label for="select-cliente" data-plantilla="{S}">Cliente</label>
               <select id="select-cliente" required></select>
             </div>
             <div class="hoja-acciones">
@@ -233,7 +234,7 @@
       </section>
 
       <section class="panel vista" data-vista="clientes">
-        <h2>Clientes</h2>
+        <h2 data-plantilla="{P}">Clientes</h2>
         <form id="form-cliente" class="fila">
           <input name="nombre" placeholder="Nombre" required>
           <input name="telefono" placeholder="Teléfono">
@@ -243,7 +244,7 @@
         <ul class="lista" id="lista-clientes"></ul>
         <dialog class="hoja" id="modal-cliente" aria-labelledby="titulo-cliente">
           <header class="hoja-cabecera">
-            <h2 id="titulo-cliente">Editar cliente</h2>
+            <h2 id="titulo-cliente" data-plantilla="Editar {s}">Editar cliente</h2>
             <button class="boton-icono" type="button" id="cerrar-cliente" aria-label="Cerrar">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
@@ -299,6 +300,20 @@
             </form>
             <p class="detalle">Los turnos empiezan dentro de este horario y terminan antes de la hora de cierre. Vale para todos los días.</p>
             <p class="aviso-ok" id="horario-aviso"></p>
+          </article>
+          <article class="perfil-tarjeta ancha">
+            <h3>Cómo llamo a mis clientes</h3>
+            <p class="detalle">Ese nombre aparece en el menú, en la agenda y en los formularios.</p>
+            <form id="form-etiqueta">
+              <div class="perfil-campos">
+                <label>Nombre<select id="perfil-etiqueta">
+                  <option value="cliente">Cliente / Clientes</option>
+                  <option value="paciente">Paciente / Pacientes</option>
+                </select></label>
+              </div>
+              <button class="boton boton-primario">Guardar</button>
+            </form>
+            <p class="aviso-ok" id="etiqueta-aviso"></p>
           </article>
         </div>
       </section>
@@ -362,6 +377,22 @@
     `<option value="${m}" ${m === actual ? 'selected' : ''}>${m} minutos</option>`).join('');
 
   let yo = null;
+
+  // Cómo se llama a los clientes para este profesional (cliente o paciente, con su singular y plural).
+  const ETIQUETAS = {
+    cliente: { s: 'cliente', p: 'clientes', S: 'Cliente', P: 'Clientes' },
+    paciente: { s: 'paciente', p: 'pacientes', S: 'Paciente', P: 'Pacientes' },
+  };
+  let etiqueta = 'cliente';
+
+  function aplicarEtiqueta(valor) {
+    etiqueta = ETIQUETAS[valor] ? valor : 'cliente';
+    const t = ETIQUETAS[etiqueta];
+    document.querySelectorAll('[data-plantilla]').forEach((el) => {
+      el.textContent = el.dataset.plantilla.replace(/\{(s|p|S|P)\}/g, (_, k) => t[k]);
+    });
+    $('perfil-etiqueta').value = etiqueta;
+  }
   let profesionales = [];
   let agendaDe = null; // null = mi agenda; el administrador puede elegir otra
   let diaSeleccionado = fechaDesplazada(0);
@@ -419,6 +450,7 @@
       mostrarError(error.message);
       return;
     }
+    aplicarEtiqueta(yo.etiquetaClientes);
     $('iniciales').textContent = yo.nombre.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
     if (yo.requiereCambioClave) { mostrar('clave'); return; }
 
@@ -456,6 +488,7 @@
     $('perfil-rol').textContent = yo.rol === 'admin' ? 'Administrador' : 'Profesional';
     $('perfil-iniciales').textContent = $('iniciales').textContent;
     const c = await api('GET', '/api/configuracion');
+    aplicarEtiqueta(c.etiquetaClientes);
     $('perfil-duracion').innerHTML = opcionesDuracion(c.duracionTurno);
     $('perfil-desde').min = fechaDesplazada(0);
     $('perfil-desde').value = fechaDesplazada(0);
@@ -466,6 +499,17 @@
       ? c.historial.map((h) => `<li>Desde el ${fechaEsp(h.desde)}: ${h.minutos} minutos</li>`).join('')
       : '<li>Todavía no hay cambios: se usan 60 minutos.</li>';
   }
+
+  $('form-etiqueta').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    mostrarError();
+    try {
+      const valor = $('perfil-etiqueta').value;
+      await api('POST', '/api/configuracion', { etiquetaClientes: valor });
+      aplicarEtiqueta(valor);
+      $('etiqueta-aviso').textContent = `Listo: ahora se muestra "${ETIQUETAS[valor].P}".`;
+    } catch (err) { mostrarError(err.message); }
+  });
 
   $('form-duracion').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -593,7 +637,7 @@
     $('lista-clientes').innerHTML = clientes.map((c) =>
       `<li><span>${escapar(c.nombre)} <span class="detalle">${escapar(c.telefono || '')}</span></span>
         <button class="boton boton-secundario" data-editar-cliente="${c.id}">Editar</button></li>`).join('')
-      || '<li class="detalle">Todavía no hay clientes</li>';
+      || `<li class="detalle">Todavía no hay ${ETIQUETAS[etiqueta].p}</li>`;
     $('select-cliente').innerHTML = clientes.map((c) => `<option value="${c.id}">${escapar(c.nombre)}</option>`).join('');
   }
 
@@ -706,6 +750,7 @@
 
   async function cargarConfiguracion() {
     const c = await api('GET', agendaUrl('/api/configuracion'));
+    aplicarEtiqueta(c.etiquetaClientes);
     duracionActual = c.duracionTurno;
     horario = c.horario;
   }
