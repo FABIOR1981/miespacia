@@ -50,10 +50,9 @@
     .hora { grid-column: 1; border-right: 1px solid var(--linea); padding: 4px 12px 0; text-align: left; font-size: .95rem; font-weight: 650; color: var(--tinta); font-variant-numeric: tabular-nums; }
     .hora.en-punto, .celda-libre.en-punto { border-top: 1px solid var(--linea-fuerte); }
     .hora.media, .celda-libre.media { border-top: 1px dashed var(--linea); }
-    .celda-libre { grid-column: 2; padding: 4px 10px; display: flex; align-items: center; }
-    .celda-libre .libre { flex: 1; }
-    .libre { text-align: left; background: repeating-linear-gradient(135deg, transparent 0 6px, var(--bruma) 6px 7px); border: 1.5px dashed var(--linea-fuerte); border-radius: 8px; min-height: 26px; padding: 0 12px; color: var(--tinta-suave); font: inherit; font-size: .9rem; }
-    .libre:hover { border-color: var(--pino); color: var(--pino-oscuro); }
+    .celda-libre { grid-column: 2; position: relative; }
+    .libre { position: absolute; inset: 0; width: 100%; display: grid; place-items: center; background: transparent; border: 0; color: var(--pino-oscuro); font: inherit; font-size: 1.1rem; opacity: 0; cursor: pointer; }
+    .libre:hover, .libre:focus-visible { opacity: 1; background: var(--pino-claro); }
     .reserva-bloque { grid-column: 2; align-self: stretch; margin: 3px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--pino-claro); border-left: 4px solid var(--pino); border-radius: 10px; padding: 4px 12px; color: var(--tinta); }
     .cancelados { font-size: .9rem; color: var(--tinta-suave); }
     .panel { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio-tarjeta); padding: 16px; display: grid; gap: 10px; }
@@ -574,7 +573,7 @@
       columnas[columnaDe(i)].push(`<div class="hora" style="grid-row:${filaDe(i)}">${h}</div>`);
       const entra = aMinutos(h) + duracionActual <= aMinutos(horario.hasta); // el turno tiene que terminar antes del cierre
       if (!ocupado.has(i) && entra) {
-        columnas[columnaDe(i)].push(`<div class="celda-libre" style="grid-row:${filaDe(i)}"><button class="libre" data-hora="${h}">Libre · reservar</button></div>`);
+        columnas[columnaDe(i)].push(`<div class="celda-libre" style="grid-row:${filaDe(i)}"><button class="libre" data-hora="${h}" aria-label="Reservar a las ${h}">+</button></div>`);
       }
     });
 
