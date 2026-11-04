@@ -505,7 +505,8 @@
 
     horas.forEach((h, i) => {
       columnas[columnaDe(i)].push(`<div class="hora" style="grid-row:${filaDe(i)}">${h}</div>`);
-      if (!ocupado.has(i)) {
+      const entra = aMinutos(h) + duracionActual <= aMinutos(horario.hasta); // el turno tiene que terminar antes del cierre
+      if (!ocupado.has(i) && entra) {
         columnas[columnaDe(i)].push(`<div class="celda-libre" style="grid-row:${filaDe(i)}"><button class="libre" data-hora="${h}">Libre · reservar</button></div>`);
       }
     });
