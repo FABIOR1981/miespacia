@@ -13,36 +13,12 @@
   --sobre-tinta: #C5D7EA; --sobre-tinta-tenue: #9DB8D3; --nav-texto: #D5E4F2; --hoy-punto: #8DBDEB;
 }
 
-/* Ciruela */
-:root[data-paleta="ciruela"] {
-  --tinta: #4A3557; --tinta-suave: #7A6790; --bruma: #F7F3FA; --linea: #E3DAEC; --linea-fuerte: #C9BCD9;
-  --pino: #7A5A98; --pino-oscuro: #64477F; --pino-claro: #F0E8F6;
-  --ocupado-fondo: #EEE8F3; --ocupado-raya: #E0D8E8; --ocupado-texto: #654F78;
-  --sobre-tinta: #D6C7E4; --sobre-tinta-tenue: #B39FCB; --nav-texto: #E3D8EE; --hoy-punto: #C7A6E6;
-}
-
 /* Arcilla */
 :root[data-paleta="terracota"] {
   --tinta: #5A3A2E; --tinta-suave: #8A6B5E; --bruma: #FBF5F2; --linea: #EEDFD7; --linea-fuerte: #DBC3B6;
   --pino: #A8654A; --pino-oscuro: #8E5139; --pino-claro: #F9EBE4;
   --ocupado-fondo: #F3EBE6; --ocupado-raya: #E9DDD5; --ocupado-texto: #74584B;
   --sobre-tinta: #E8D2C5; --sobre-tinta-tenue: #CCAA99; --nav-texto: #F0E0D6; --hoy-punto: #F2B49A;
-}
-
-/* Piedra */
-:root[data-paleta="grafito"] {
-  --tinta: #3D3F40; --tinta-suave: #6E7070; --bruma: #F7F7F5; --linea: #E3E3DF; --linea-fuerte: #C9C9C3;
-  --pino: #6F6F62; --pino-oscuro: #585850; --pino-claro: #EFEFEB;
-  --ocupado-fondo: #ECECE9; --ocupado-raya: #DEDED9; --ocupado-texto: #5C5E5E;
-  --sobre-tinta: #D8D8D2; --sobre-tinta-tenue: #B5B5AD; --nav-texto: #E4E4DF; --hoy-punto: #E8C77A;
-}
-
-/* Salvia */
-:root[data-paleta="salvia"] {
-  --tinta: #33473C; --tinta-suave: #62796B; --bruma: #F3F8F4; --linea: #DCE8DE; --linea-fuerte: #BED3C2;
-  --pino: #4F7F5F; --pino-oscuro: #3F6B4D; --pino-claro: #E6F2E9;
-  --ocupado-fondo: #E7EEE8; --ocupado-raya: #D8E3DA; --ocupado-texto: #506658;
-  --sobre-tinta: #CBDDCF; --sobre-tinta-tenue: #A3C2AB; --nav-texto: #D9E8DC; --hoy-punto: #9BDDB0;
 }
 
 /* Menta */
@@ -75,14 +51,6 @@
   --pino: #3D7FB3; --pino-oscuro: #2D6594; --pino-claro: #E7F3FB;
   --ocupado-fondo: #E7EFF6; --ocupado-raya: #D8E5EF; --ocupado-texto: #4B6478;
   --sobre-tinta: #CBDEEF; --sobre-tinta-tenue: #A6C6E0; --nav-texto: #D9E9F5; --hoy-punto: #9ED0F5;
-}
-
-/* Oliva */
-:root[data-paleta="oliva"] {
-  --tinta: #2F3520; --tinta-suave: #6A7150; --bruma: #F6F7EE; --linea: #E2E5D2; --linea-fuerte: #C8CDB0;
-  --pino: #6B7A3A; --pino-oscuro: #56632D; --pino-claro: #EEF1E0;
-  --ocupado-fondo: #E8EADC; --ocupado-raya: #DADDC9; --ocupado-texto: #555C40;
-  --sobre-tinta: #D3D8BE; --sobre-tinta-tenue: #B0B795; --nav-texto: #DDE2C9; --hoy-punto: #B5CC7A;
 }
 
 /* Bordó */
