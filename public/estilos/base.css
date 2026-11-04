@@ -286,7 +286,7 @@ body.fecha-en-barra .barra-fecha { display: inline-flex; animation: hoja-entra .
 
 /* ---------- Pantalla de ingreso ---------- */
 
-.ingreso { min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+.ingreso { width: 100vw; margin: -16px calc(50% - 50vw) -48px; min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
 .ingreso-panel {
   position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 32px;
   padding: clamp(28px, 5vw, 64px); background: var(--barra-fondo); color: #fff; overflow: hidden;
@@ -433,4 +433,3 @@ body.fecha-en-barra .barra-fecha { display: inline-flex; animation: hoja-entra .
 .informe-opcion-titulo { font-size: 1.05rem; font-weight: 650; }
 .informe-opcion-texto { color: var(--tinta-suave); font-size: .92rem; }
 .informe-volver { margin: 0 0 8px -8px; }
-
