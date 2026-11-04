@@ -6,9 +6,14 @@
   "main": "src/servidor.js",
   "scripts": {
     "start": "node src/servidor.js",
-    "test": "node --test test/logica.test.js test/servidor.test.js"
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node --test test/logica.test.js test/servidor.test.js test/worker.test.js"
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "wrangler": "^4.157.0"
   }
 }

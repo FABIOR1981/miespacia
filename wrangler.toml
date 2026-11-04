@@ -1,0 +1,12 @@
+name = "miespacia"
+main = "src/worker.mjs"
+compatibility_date = "2026-10-01"
+
+# La página (public/) la sirven los assets; /api/* pasa primero por el Worker.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[vars]
+MIESPACIA_PROFESIONAL = "profesional"

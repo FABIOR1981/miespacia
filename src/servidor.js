@@ -13,16 +13,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { crearPersistencia } = require('./persistencia/interface_persistencia');
 const { crearAgenda, ErrorDeNegocio } = require('./logica/agenda');
+const { fechaLocal } = require('./fechas');
 
 const PUBLIC = path.join(__dirname, '..', 'public');
 const LIMITE_BODY = 100 * 1024;
-const ZONA = 'America/Montevideo';
-
-/** Fecha local 'AAAA-MM-DD' en la zona de Montevideo, desplazada n días. */
-function fechaLocal(desplazamientoDias = 0) {
-  const base = new Date(Date.now() + desplazamientoDias * 86400000);
-  return new Intl.DateTimeFormat('en-CA', { timeZone: ZONA, year: 'numeric', month: '2-digit', day: '2-digit' }).format(base);
-}
 
 function enviarJson(res, estado, cuerpo) {
   res.writeHead(estado, { 'Content-Type': 'application/json; charset=utf-8' });
