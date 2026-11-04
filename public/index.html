@@ -51,6 +51,11 @@
     .menu button[aria-current="page"] { background: var(--pino-claro); color: var(--pino-oscuro); }
     .fila label { display: grid; gap: 4px; flex: 1 1 200px; font-size: .9rem; color: var(--tinta-suave); }
     .fila label input { flex: none; width: 100%; }
+    .modal { border: 0; border-radius: var(--radio-tarjeta); padding: 20px; width: min(420px, calc(100vw - 32px)); background: var(--papel); color: var(--tinta); box-shadow: 0 12px 40px rgba(0, 0, 0, .25); }
+    .modal::backdrop { background: var(--telon); }
+    .modal h2 { margin: 0 0 12px; font-size: 1.05rem; }
+    .modal form { display: grid; gap: 12px; }
+    .modal .acciones { display: flex; gap: 8px; justify-content: flex-end; }
     .selector select { min-height: 42px; padding: 0 12px; border: 1.5px solid var(--linea-fuerte); border-radius: var(--radio-campo); background: var(--papel); }
   </style>
 </head>
@@ -110,14 +115,16 @@
       <div class="tira-dias" id="tira-dias" role="group" aria-label="Días"></div>
       <section class="grilla" id="grilla" aria-label="Horarios del día"></section>
 
-      <section class="panel" id="panel-reserva" hidden>
+      <dialog class="modal" id="modal-reserva" aria-labelledby="titulo-reserva">
         <h2 id="titulo-reserva"></h2>
-        <form id="form-reserva" class="fila">
-          <select name="clienteId" id="select-cliente" required></select>
-          <button class="boton boton-primario">Reservar</button>
-          <button type="button" class="boton boton-secundario" id="cerrar-reserva">Cerrar</button>
+        <form id="form-reserva">
+          <label>Cliente<select name="clienteId" id="select-cliente" required></select></label>
+          <div class="acciones">
+            <button type="button" class="boton boton-secundario" id="cerrar-reserva">Cancelar</button>
+            <button class="boton boton-primario">Reservar</button>
+          </div>
         </form>
-      </section>
+      </dialog>
 
       </div>
 
@@ -292,13 +299,13 @@
   function abrirReserva(hora) {
     horaElegida = hora;
     $('titulo-reserva').textContent = `Reservar ${hora} · ${titulo.format(aDate(diaSeleccionado))}`;
-    $('panel-reserva').hidden = false;
+    $('modal-reserva').showModal();
     $('select-cliente').focus();
   }
 
   function irA(dia) {
     diaSeleccionado = dia;
-    $('panel-reserva').hidden = true;
+    $('modal-reserva').close();
     mostrarError();
     refrescar().catch((err) => mostrarError(err.message));
   }
@@ -332,7 +339,7 @@
   // Agenda
   $('select-profesional').addEventListener('change', (e) => {
     agendaDe = e.target.value ? Number(e.target.value) : null;
-    $('panel-reserva').hidden = true;
+    $('modal-reserva').close();
     Promise.all([cargarClientes(), refrescar()]).catch((err) => mostrarError(err.message));
   });
 
@@ -362,11 +369,11 @@
     mostrarError();
     try {
       await api('POST', agendaUrl('/api/turnos'), { clienteId: Number($('select-cliente').value), fecha: diaSeleccionado, hora: horaElegida });
-      $('panel-reserva').hidden = true;
+      $('modal-reserva').close();
       await dibujarGrilla();
     } catch (err) { mostrarError(err.message); }
   });
-  $('cerrar-reserva').addEventListener('click', () => { $('panel-reserva').hidden = true; });
+  $('cerrar-reserva').addEventListener('click', () => { $('modal-reserva').close(); });
 
   $('form-cliente').addEventListener('submit', async (e) => {
     e.preventDefault();
