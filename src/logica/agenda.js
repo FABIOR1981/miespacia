@@ -96,6 +96,17 @@ function crearAgenda(persistencia) {
       return clientes.listar(profesionalId);
     },
 
+    async editarCliente(profesionalId, id, datos = {}) {
+      const cambios = {
+        nombre: textoObligatorio(datos.nombre, 'El nombre'),
+        telefono: String(datos.telefono ?? '').trim(),
+        notas: String(datos.notas ?? '').trim(),
+      };
+      const cliente = await clientes.actualizar(profesionalId, Number(id), cambios);
+      if (!cliente) throw new ErrorDeNegocio('El cliente no existe', 404);
+      return cliente;
+    },
+
     async crearCliente(profesionalId, datos = {}) {
       return clientes.crear(profesionalId, {
         nombre: textoObligatorio(datos.nombre, 'El nombre'),
@@ -108,7 +119,10 @@ function crearAgenda(persistencia) {
       validarFecha(desde);
       validarFecha(hasta);
       if (desde > hasta) throw new ErrorDeNegocio('"desde" no puede ser posterior a "hasta"');
-      return turnos.listarRango(profesionalId, desde, hasta);
+      const lista = await turnos.listarRango(profesionalId, desde, hasta);
+      // El nombre que se muestra es el actual del cliente, aunque se haya editado después de reservar.
+      const nombres = new Map((await clientes.listar(profesionalId)).map((c) => [c.id, c.nombre]));
+      return lista.map((t) => ({ ...t, clienteNombre: nombres.get(t.clienteId) ?? t.clienteNombre }));
     },
 
     async obtenerConfiguracion(profesionalId) {

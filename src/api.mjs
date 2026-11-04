@@ -166,6 +166,9 @@ async function rutaAgenda(ctx, request, url, partes, profesionalId) {
   const metodo = request.method;
   const recurso = partes[1];
 
+  if (recurso === 'clientes' && partes.length === 4 && partes[3] === 'editar' && metodo === 'POST') {
+    return json(200, await ctx.agenda.editarCliente(profesionalId, partes[2], await leerBody(request)));
+  }
   if (recurso === 'clientes' && partes.length === 2) {
     if (metodo === 'GET') return json(200, await ctx.agenda.listarClientes(profesionalId));
     if (metodo === 'POST') return json(201, await ctx.agenda.crearCliente(profesionalId, await leerBody(request)));

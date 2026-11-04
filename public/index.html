@@ -176,6 +176,25 @@
           <button class="boton boton-primario">Agregar</button>
         </form>
         <ul class="lista" id="lista-clientes"></ul>
+        <dialog class="hoja" id="modal-cliente" aria-labelledby="titulo-cliente">
+          <header class="hoja-cabecera">
+            <h2 id="titulo-cliente">Editar cliente</h2>
+            <button class="boton-icono" type="button" id="cerrar-cliente" aria-label="Cerrar">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </header>
+          <div class="hoja-cuerpo">
+            <form id="form-editar-cliente" novalidate>
+              <div class="campo"><label for="editar-cliente-nombre">Nombre</label><input id="editar-cliente-nombre" name="nombre" type="text" required></div>
+              <div class="campo"><label for="editar-cliente-telefono">Teléfono</label><input id="editar-cliente-telefono" name="telefono" type="text"></div>
+              <div class="campo"><label for="editar-cliente-notas">Notas</label><input id="editar-cliente-notas" name="notas" type="text"></div>
+              <div class="hoja-acciones">
+                <button class="boton boton-primario">Guardar</button>
+                <button class="boton boton-secundario" type="button" id="volver-cliente">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </dialog>
       </section>
 
       <section class="panel vista" data-vista="perfil" hidden>
@@ -410,6 +429,33 @@
     $('modal-profesional').showModal();
   }
 
+  $('lista-clientes').addEventListener('click', (e) => {
+    const id = e.target.dataset.editarCliente;
+    if (!id) return;
+    const c = clientesLista.find((x) => x.id === Number(id));
+    if (!c) return;
+    editandoClienteId = c.id;
+    $('editar-cliente-nombre').value = c.nombre;
+    $('editar-cliente-telefono').value = c.telefono || '';
+    $('editar-cliente-notas').value = c.notas || '';
+    $('modal-cliente').showModal();
+  });
+  $('cerrar-cliente').addEventListener('click', () => $('modal-cliente').close());
+  $('volver-cliente').addEventListener('click', () => $('modal-cliente').close());
+  $('form-editar-cliente').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    mostrarError();
+    try {
+      await api('POST', agendaUrl(`/api/clientes/${editandoClienteId}/editar`), {
+        nombre: $('editar-cliente-nombre').value,
+        telefono: $('editar-cliente-telefono').value,
+        notas: $('editar-cliente-notas').value,
+      });
+      $('modal-cliente').close();
+      await Promise.all([cargarClientes(), dibujarGrilla()]);
+    } catch (err) { mostrarError(err.message); }
+  });
+
   $('cerrar-profesional').addEventListener('click', () => $('modal-profesional').close());
   $('volver-profesional').addEventListener('click', () => $('modal-profesional').close());
   $('form-editar-profesional').addEventListener('submit', async (e) => {
@@ -452,10 +498,15 @@
       </li>`).join('') || '<li class="detalle">Todavía no hay profesionales</li>';
   }
 
+  let clientesLista = [];
+  let editandoClienteId = null;
+
   async function cargarClientes() {
     const clientes = await api('GET', agendaUrl('/api/clientes'));
+    clientesLista = clientes;
     $('lista-clientes').innerHTML = clientes.map((c) =>
-      `<li><span>${escapar(c.nombre)} <span class="detalle">${escapar(c.telefono || '')}</span></span></li>`).join('')
+      `<li><span>${escapar(c.nombre)} <span class="detalle">${escapar(c.telefono || '')}</span></span>
+        <button class="boton boton-secundario" data-editar-cliente="${c.id}">Editar</button></li>`).join('')
       || '<li class="detalle">Todavía no hay clientes</li>';
     $('select-cliente').innerHTML = clientes.map((c) => `<option value="${c.id}">${escapar(c.nombre)}</option>`).join('');
   }
