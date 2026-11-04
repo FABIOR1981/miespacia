@@ -59,6 +59,13 @@
     .lista li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--linea); flex-wrap: wrap; }
     .detalle { color: var(--tinta-suave); font-size: .9rem; }
     .inactivo { color: var(--tinta-suave); text-decoration: line-through; }
+    .profes li { display: grid; gap: 10px; padding: 16px 0; }
+    .profes .profe-datos { display: grid; gap: 2px; }
+    .profes .profe-datos strong { font-size: 1rem; }
+    .profe-acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .profe-acciones .boton { min-height: 40px; }
+    .profe-acciones select { width: auto; min-width: 160px; min-height: 40px; }
+    .profe-acciones .etiqueta { font-size: .85rem; color: var(--tinta-suave); }
     .selector { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .fila label { display: grid; gap: 4px; flex: 1 1 200px; font-size: .9rem; color: var(--tinta-suave); }
     .fila label input { flex: none; width: 100%; }
@@ -201,7 +208,7 @@
           <button class="boton boton-primario">Dar de alta</button>
         </form>
         <p class="aviso-ok" id="clave-temporal"></p>
-        <ul class="lista" id="lista-profesionales"></ul>
+        <ul class="lista profes" id="lista-profesionales"></ul>
       </section>
     </div>
   </main>
@@ -408,16 +415,20 @@
       activos.filter((p) => p.id !== yo.id).map((p) => `<option value="${p.id}" ${agendaDe === p.id ? 'selected' : ''}>${escapar(p.nombre)}</option>`).join('');
     $('lista-profesionales').innerHTML = profesionales.map((p) => `
       <li class="${p.activo ? '' : 'inactivo'}">
-        <span>${escapar(p.nombre)} <span class="detalle">@${escapar(p.usuario || '')} · ${escapar(p.email)}${p.activo ? '' : ' · desactivado'}</span></span>
+        <div class="profe-datos">
+          <strong>${escapar(p.nombre)}${p.activo ? '' : ' · desactivado'}</strong>
+          <span class="detalle">@${escapar(p.usuario || '')} · ${escapar(p.email)}</span>
+        </div>
         ${p.activo ? `
-          <span class="fila">
+          <div class="profe-acciones">
             <button class="boton boton-secundario" data-editar="${p.id}">Editar</button>
-            <select data-duracion="${p.id}">${opcionesDuracion(p.duracionTurno)}</select>
+            <span class="etiqueta">Duración</span>
+            <select data-duracion="${p.id}" aria-label="Duración de ${escapar(p.nombre)}">${opcionesDuracion(p.duracionTurno)}</select>
             <button class="boton boton-secundario" data-guardar="${p.id}">Guardar duración</button>
             ${p.id !== yo.id ? `
               <button class="boton boton-secundario" data-reiniciar="${p.id}">Reiniciar clave</button>
               <button class="boton boton-secundario" data-desactivar="${p.id}">Desactivar</button>` : ''}
-          </span>` : ''}
+          </div>` : ''}
       </li>`).join('') || '<li class="detalle">Todavía no hay profesionales</li>';
   }
 
