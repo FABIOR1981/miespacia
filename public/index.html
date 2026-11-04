@@ -45,10 +45,12 @@
       .columna + .columna { border-left: 1px solid var(--linea); }
     }
     .reserva-bloque.continua { color: var(--tinta-suave); }
-    .hora { border-right: 1px solid var(--linea); padding: 4px 12px 0; text-align: left; font-size: .95rem; font-weight: 650; color: var(--tinta); font-variant-numeric: tabular-nums; }
+    .linea-ahora { grid-column: 1 / -1; position: relative; height: 0; align-self: start; border-top: 2px solid var(--ahora); z-index: 3; pointer-events: none; }
+    .linea-ahora::before { content: ''; position: absolute; left: 58px; top: -6px; width: 10px; height: 10px; border-radius: 50%; background: var(--ahora); }
+    .hora { grid-column: 1; border-right: 1px solid var(--linea); padding: 4px 12px 0; text-align: left; font-size: .95rem; font-weight: 650; color: var(--tinta); font-variant-numeric: tabular-nums; }
     .hora.en-punto, .celda-libre.en-punto { border-top: 1px solid var(--linea-fuerte); }
     .hora.media, .celda-libre.media { border-top: 1px dashed var(--linea); }
-    .celda-libre { padding: 4px 10px; display: flex; align-items: center; }
+    .celda-libre { grid-column: 2; padding: 4px 10px; display: flex; align-items: center; }
     .celda-libre .libre { flex: 1; }
     .libre { text-align: left; background: repeating-linear-gradient(135deg, transparent 0 6px, var(--bruma) 6px 7px); border: 1.5px dashed var(--linea-fuerte); border-radius: 8px; min-height: 26px; padding: 0 12px; color: var(--tinta-suave); font: inherit; font-size: .9rem; }
     .libre:hover { border-color: var(--pino); color: var(--pino-oscuro); }
@@ -457,6 +459,13 @@
     } catch (err) { mostrarError(err.message); }
   });
 
+  // La línea de la hora actual se mueve sola mientras se mira hoy.
+  setInterval(() => {
+    if (!$('app').hidden && diaSeleccionado === fechaDesplazada(0) && !$('modal-reserva').open) {
+      dibujarGrilla().catch(() => {});
+    }
+  }, 60000);
+
   $('cerrar-profesional').addEventListener('click', () => $('modal-profesional').close());
   $('volver-profesional').addEventListener('click', () => $('modal-profesional').close());
   $('form-editar-profesional').addEventListener('submit', async (e) => {
@@ -535,6 +544,12 @@
     return lista;
   }
 
+  function minutosAhoraMontevideo() {
+    const [h, m] = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Montevideo', hour: '2-digit', minute: '2-digit', hour12: false })
+      .format(new Date()).split(':').map(Number);
+    return (h % 24) * 60 + m;
+  }
+
   async function dibujarGrilla() {
     const turnos = await api('GET', agendaUrl('/api/turnos', { desde: diaSeleccionado, hasta: diaSeleccionado }));
     const activos = turnos.filter((t) => !t.cancelado);
@@ -580,6 +595,17 @@
           : '';
         columnas[c].push(`<div class="reserva-bloque ${primero ? '' : 'continua'}" style="grid-row:${filaDe(j)} / span ${k - j}">${contenido}</div>`);
         j = k;
+      }
+    }
+
+    // Línea de la hora actual, solo cuando se mira hoy y la hora cae dentro de la grilla.
+    if (diaSeleccionado === fechaDesplazada(0) && horas.length) {
+      const desdeMin = aMinutos(horas[0]);
+      const minuto = minutosAhoraMontevideo() - desdeMin;
+      const idx = Math.floor(minuto / 30);
+      if (minuto >= 0 && idx < horas.length) {
+        const avance = (minuto % 30) / 30 * 34; // 34 px es el alto de cada tramo
+        columnas[columnaDe(idx)].push(`<div class="linea-ahora" style="grid-row:${filaDe(idx)}; margin-top:${avance}px" aria-hidden="true"></div>`);
       }
     }
 
