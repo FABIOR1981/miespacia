@@ -272,6 +272,7 @@
 
   /** Muestra una sola sección del menú y carga sus datos. */
   function mostrarVista(nombre) {
+    $('selector-agenda').hidden = nombre !== 'agenda' || yo.rol !== 'admin';
     document.querySelectorAll('.vista').forEach((el) => { el.hidden = el.dataset.vista !== nombre; });
     document.querySelectorAll('.barra [data-vista]').forEach((b) => b.setAttribute('aria-current', b.dataset.vista === nombre ? 'page' : 'false'));
     mostrarError();
