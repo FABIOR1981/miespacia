@@ -556,12 +556,11 @@
     const horas = horasParaMostrar(activos);
 
     // Dos columnas: la primera mitad del día a la izquierda y el resto a la derecha.
-    // El corte cae en una hora en punto, lo más cerca posible del medio, para que cada columna arranque con su etiqueta.
+    // El corte cae en la primera hora en punto después del medio: la izquierda llega hasta la media hora anterior
+    // y la derecha arranca con su etiqueta, sin salto en la lectura.
     const medio = horas.length / 2;
-    const cortes = horas.map((h, i) => i).filter((i) => i > 0 && horas[i].endsWith(':00'));
-    const mitad = cortes.length
-      ? cortes.reduce((a, b) => (Math.abs(b - medio) < Math.abs(a - medio) ? b : a))
-      : Math.ceil(medio);
+    const corte = horas.findIndex((h, i) => i > medio && h.endsWith(':00'));
+    const mitad = corte > 0 ? corte : Math.ceil(medio);
     const columnaDe = (i) => (i < mitad ? 0 : 1);
     const filaDe = (i) => (i < mitad ? i : i - mitad) + 1;
     const columnas = [[], []];
