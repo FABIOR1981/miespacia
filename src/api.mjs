@@ -1,5 +1,5 @@
 import { crearPersistencia } from './persistencia/interface_persistencia.js';
-import { crearAgenda, ErrorDeNegocio, duracionVigente } from './logica/agenda.js';
+import { crearAgenda, ErrorDeNegocio, duracionVigente, horarioVigente } from './logica/agenda.js';
 import { identificar, ingresar, cookieDeSesion, cookieParaBorrar, exigirAdmin, agendaObjetivo, ErrorDeAcceso } from './logica/acceso.js';
 import { hashearClave, verificarClave, claveTemporal } from './logica/seguridad.js';
 import { sembrarDatosDePrueba } from './datos/prueba.js';
@@ -76,6 +76,7 @@ function resumen(cuenta) {
     requiereCambioClave: cuenta.requiereCambioClave === true,
     activo: cuenta.activo !== false,
     duracionTurno: duracionVigente(cuenta, fechaLocal()),
+    horario: horarioVigente(cuenta),
   };
 }
 
@@ -121,10 +122,17 @@ async function altaProfesional(ctx, datos) {
   return { profesional: resumen(cuenta), claveTemporal: clave };
 }
 
+/** Edita nombre, usuario, email, duración y horario. Lo que cambia de horario o duración vale desde hoy. */
 async function editarProfesional(ctx, id, datos) {
   const identidad = await validarIdentidad(ctx, datos, id);
+  const actual = await ctx.persistencia.profesionales.obtener(id);
+  if (!actual) throw new ErrorDeNegocio('El profesional no existe', 404);
+  if (datos.horario) await ctx.agenda.cambiarHorario(id, datos.horario.desde, datos.horario.hasta);
+  const duracion = Number(datos.duracionTurno);
+  if (datos.duracionTurno !== undefined && duracion !== duracionVigente(actual, fechaLocal())) {
+    await ctx.agenda.cambiarDuracion(id, duracion);
+  }
   const cuenta = await ctx.persistencia.profesionales.actualizar(id, identidad);
-  if (!cuenta) throw new ErrorDeNegocio('El profesional no existe', 404);
   return resumen(cuenta);
 }
 
