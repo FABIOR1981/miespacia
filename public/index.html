@@ -37,8 +37,10 @@
     .dia[aria-pressed="true"] { background: var(--activo-fondo); border-color: var(--activo-fondo); color: #fff; }
     .dia[aria-pressed="true"] .dia-nombre { color: var(--sobre-tinta); }
     .grilla { display: grid; grid-template-columns: 64px 1fr; grid-auto-rows: 52px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio-tarjeta); overflow: hidden; }
-    .hora { border-top: 1px solid var(--linea); border-right: 1px solid var(--linea); padding-top: 12px; text-align: center; font-size: .85rem; color: var(--tinta-suave); font-variant-numeric: tabular-nums; }
-    .celda-libre { border-top: 1px solid var(--linea); padding: 8px 10px; display: flex; align-items: center; }
+    .hora { border-right: 1px solid var(--linea); padding: 8px 12px 0; text-align: left; font-size: .95rem; font-weight: 650; color: var(--tinta); font-variant-numeric: tabular-nums; }
+    .hora.en-punto, .celda-libre.en-punto { border-top: 1px solid var(--linea-fuerte); }
+    .hora.media, .celda-libre.media { border-top: 1px dashed var(--linea); }
+    .celda-libre { padding: 8px 10px; display: flex; align-items: center; }
     .celda-libre .libre { flex: 1; }
     .libre { text-align: left; background: repeating-linear-gradient(135deg, transparent 0 6px, var(--bruma) 6px 7px); border: 1.5px dashed var(--linea-fuerte); border-radius: 10px; min-height: 36px; padding: 0 12px; color: var(--tinta-suave); font: inherit; }
     .libre:hover { border-color: var(--pino); color: var(--pino-oscuro); }
@@ -59,7 +61,8 @@
     .selector { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .fila label { display: grid; gap: 4px; flex: 1 1 200px; font-size: .9rem; color: var(--tinta-suave); }
     .fila label input { flex: none; width: 100%; }
-    .reserva-fin { font-size: .85rem; color: var(--tinta-suave); }
+    .reserva-texto { display: grid; gap: 2px; min-width: 0; }
+    .reserva-hora { font-size: .88rem; color: var(--tinta-suave); font-variant-numeric: tabular-nums; }
     .datos { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0 0 12px; }
     .datos dt { color: var(--tinta-suave); }
     .datos dd { margin: 0; color: var(--tinta); }
@@ -372,15 +375,16 @@
     $('grilla').innerHTML = HORAS.map((h, i) => {
       const fila = i + 1;
       const m = aMinutos(h);
-      const hora = `<div class="hora" style="grid-row:${fila}">${h}</div>`;
+      const tramo = h.endsWith(':00') ? 'en-punto' : 'media';
+      const hora = `<div class="hora ${tramo}" style="grid-row:${fila}">${h}</div>`;
       const t = comienza[h];
       if (t) {
         return hora + `<div class="reserva-bloque" style="grid-row:${fila} / span ${t.duracion / 30}">
-          <span><strong>${escapar(t.clienteNombre || '')}</strong><span class="reserva-fin"> · ${h} a ${aHora(m + t.duracion)}</span></span>
+          <div class="reserva-texto"><strong>${escapar(t.clienteNombre || '')}</strong><span class="reserva-hora">${h} – ${aHora(m + t.duracion)}</span></div>
           <button class="boton boton-secundario" data-cancelar="${t.id}">Cancelar</button></div>`;
       }
       if (cubierto(m)) return hora; // la franja ya la ocupa la reserva que empezó antes
-      return hora + `<div class="celda-libre" style="grid-row:${fila}"><button class="libre" data-hora="${h}">Libre · reservar</button></div>`;
+      return hora + `<div class="celda-libre ${tramo}" style="grid-row:${fila}"><button class="libre" data-hora="${h}">Libre · reservar</button></div>`;
     }).join('');
 
     $('cancelados').textContent = cancelados.length
