@@ -322,7 +322,7 @@
         <h2>Profesionales</h2>
         <form id="form-profesional" class="fila">
           <input name="nombre" placeholder="Nombre" required>
-          <input name="email" type="email" placeholder="Email" required>
+          <input name="email" type="email" placeholder="Email (opcional)">
           <input name="usuario" placeholder="Usuario (opcional)">
           <button class="boton boton-primario">Dar de alta</button>
         </form>
@@ -344,7 +344,7 @@
       <form id="form-editar-profesional" novalidate>
         <div class="campo"><label for="editar-nombre">Nombre</label><input id="editar-nombre" name="nombre" type="text" required></div>
         <div class="campo"><label for="editar-usuario">Usuario</label><input id="editar-usuario" name="usuario" type="text" required></div>
-        <div class="campo"><label for="editar-email">Email</label><input id="editar-email" name="email" type="email" required></div>
+        <div class="campo"><label for="editar-email">Email (opcional)</label><input id="editar-email" name="email" type="email"></div>
         <div class="campo"><label for="editar-duracion">Duración de las reservas</label><select id="editar-duracion" name="duracionTurno"></select></div>
         <fieldset class="campo">
           <legend>Horario de la agenda</legend>
@@ -484,7 +484,7 @@
 
   async function cargarPerfil() {
     $('perfil-nombre').textContent = yo.nombre;
-    $('perfil-email').textContent = yo.email;
+    $('perfil-email').textContent = yo.email || 'Sin email';
     $('perfil-rol').textContent = yo.rol === 'admin' ? 'Administrador' : 'Profesional';
     $('perfil-iniciales').textContent = $('iniciales').textContent;
     const c = await api('GET', '/api/configuracion');
@@ -616,7 +616,7 @@
       <li class="${p.activo ? '' : 'inactivo'}">
         <div class="profe-datos">
           <strong>${escapar(p.nombre)}${p.activo ? '' : ' · desactivado'}</strong>
-          <span class="detalle">@${escapar(p.usuario || '')} · ${escapar(p.email)}</span>
+          <span class="detalle">@${escapar(p.usuario || '')}${p.email ? ` · ${escapar(p.email)}` : ' · sin email'}</span>
         </div>
         ${p.activo ? `
           <div class="profe-acciones">

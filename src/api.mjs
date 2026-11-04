@@ -101,17 +101,19 @@ async function validarIdentidad(ctx, datos, idActual = null) {
   const nombre = String(datos.nombre ?? '').trim();
   if (!nombre) throw new ErrorDeNegocio('El nombre es obligatorio');
   const email = String(datos.email ?? '').trim().toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new ErrorDeNegocio('El email no es válido');
-  const usuario = String(datos.usuario || usuarioDesdeEmail(email)).trim().toLowerCase();
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new ErrorDeNegocio('El email no es válido');
+  const usuarioIndicado = String(datos.usuario ?? '').trim().toLowerCase();
+  if (!usuarioIndicado && !email) throw new ErrorDeNegocio('Indicá un usuario o un email');
+  const usuario = usuarioIndicado || usuarioDesdeEmail(email);
   if (!/^[a-z0-9._-]{3,30}$/.test(usuario)) {
     throw new ErrorDeNegocio('El usuario tiene de 3 a 30 caracteres: letras, números, punto, guion o guion bajo');
   }
   const p = ctx.persistencia.profesionales;
-  const otroEmail = await p.porEmail(email);
+  const otroEmail = email ? await p.porEmail(email) : null;
   if (otroEmail && otroEmail.id !== idActual) throw new ErrorDeNegocio('Ya existe un profesional con ese email', 409);
   const otroUsuario = await p.porUsuario(usuario);
   if (otroUsuario && otroUsuario.id !== idActual) throw new ErrorDeNegocio('Ya existe un profesional con ese usuario', 409);
-  return { nombre, email, usuario };
+  return { nombre, email: email || null, usuario };
 }
 
 async function altaProfesional(ctx, datos) {
