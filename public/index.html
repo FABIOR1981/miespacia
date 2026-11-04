@@ -615,7 +615,15 @@
         await api('POST', agendaUrl(`/api/turnos/${cancelar.dataset.cancelar}/cancelar`));
         await dibujarGrilla();
       }
-    } catch (err) { mostrarError(err.message); }
+    } catch (err) {
+      if (err.estado === 404) {
+        // El turno ya no está en el servidor: se actualiza la agenda para mostrar lo que hay.
+        mostrarError('Ese turno ya no está en la agenda. La actualicé.');
+        await dibujarGrilla().catch(() => {});
+      } else {
+        mostrarError(err.message);
+      }
+    }
   });
 
   $('form-reserva').addEventListener('submit', async (e) => {
