@@ -37,22 +37,6 @@
   --sobre-tinta: #D3CCEB; --sobre-tinta-tenue: #B2A8D6; --nav-texto: #E0DCF2; --hoy-punto: #C1B3F5;
 }
 
-/* Durazno */
-:root[data-paleta="durazno"] {
-  --tinta: #54382E; --tinta-suave: #86675B; --bruma: #FDF7F4; --linea: #F3E4DC; --linea-fuerte: #E5CABD;
-  --pino: #B85C3D; --pino-oscuro: #9E4A2E; --pino-claro: #FCEEE8;
-  --ocupado-fondo: #F6EEEA; --ocupado-raya: #EDE1DA; --ocupado-texto: #7A5D50;
-  --sobre-tinta: #EFD9CD; --sobre-tinta-tenue: #D9B5A4; --nav-texto: #F5E6DD; --hoy-punto: #F6B9A0;
-}
-
-/* Celeste */
-:root[data-paleta="celeste"] {
-  --tinta: #304A60; --tinta-suave: #5F7A8F; --bruma: #F4F9FD; --linea: #DCE9F3; --linea-fuerte: #BDD4E6;
-  --pino: #3D7FB3; --pino-oscuro: #2D6594; --pino-claro: #E7F3FB;
-  --ocupado-fondo: #E7EFF6; --ocupado-raya: #D8E5EF; --ocupado-texto: #4B6478;
-  --sobre-tinta: #CBDEEF; --sobre-tinta-tenue: #A6C6E0; --nav-texto: #D9E9F5; --hoy-punto: #9ED0F5;
-}
-
 /* Bordó */
 :root[data-paleta="bordo"] {
   --tinta: #40222B; --tinta-suave: #7D5A63; --bruma: #FBF3F5; --linea: #EEDCE2; --linea-fuerte: #D7BAC3;
@@ -67,14 +51,6 @@
   --pino: #4E6E8E; --pino-oscuro: #3F5C78; --pino-claro: #E4EBF2;
   --ocupado-fondo: #E6ECF1; --ocupado-raya: #D5DEE7; --ocupado-texto: #4B5C6E;
   --sobre-tinta: #CCD7E2; --sobre-tinta-tenue: #A7B8C9; --nav-texto: #D8E2EC; --hoy-punto: #8FB3D6;
-}
-
-/* Miel */
-:root[data-paleta="miel"] {
-  --tinta: #4A3A18; --tinta-suave: #7F6A3F; --bruma: #FDF8EE; --linea: #F0E4C8; --linea-fuerte: #DCC89C;
-  --pino: #9A6F1F; --pino-oscuro: #7F5A16; --pino-claro: #FBF0D8;
-  --ocupado-fondo: #F4EEDF; --ocupado-raya: #E7DEC8; --ocupado-texto: #6B5628;
-  --sobre-tinta: #EBDDB8; --sobre-tinta-tenue: #D3BC84; --nav-texto: #F0E2BE; --hoy-punto: #F2C75C;
 }
 
 /* Oscuro: fondo casi negro, superficies gris petróleo y textos claros. Solo en pantalla: al imprimir queda la versión clara. */
