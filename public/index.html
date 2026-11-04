@@ -8,9 +8,21 @@
   <link rel="stylesheet" href="estilos/paletas.css">
   <style>
     body { background: var(--bruma); margin: 0; }
-    .barra { position: sticky; top: 0; z-index: 20; background: var(--barra-fondo); height: var(--alto-barra); display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 16px; color: #fff; font-weight: 700; }
-    .barra .usuario { font-weight: 500; font-size: .9rem; color: var(--sobre-tinta); }
-    .barra button { background: transparent; border: 1px solid var(--sobre-tinta-tenue); color: #fff; border-radius: var(--radio-boton); padding: 6px 12px; }
+    .barra { position: sticky; top: 0; z-index: 20; height: var(--alto-barra); display: flex; align-items: center; gap: 24px; padding: 0 20px; background: var(--barra-fondo); color: #fff; }
+    .marca { font-weight: 700; font-size: 1.2rem; letter-spacing: .01em; }
+    .nav-principal { display: flex; gap: 4px; margin-right: auto; }
+    .nav-principal button { padding: 8px 14px; border: 0; border-radius: 999px; background: transparent; color: var(--sobre-tinta); font: inherit; font-weight: 550; }
+    .nav-principal button:hover { background: rgba(255, 255, 255, .1); color: #fff; }
+    .nav-principal button[aria-current="page"] { background: rgba(255, 255, 255, .16); color: #fff; }
+    .cuenta-boton { display: inline-flex; align-items: center; gap: 10px; min-height: 40px; padding: 4px 14px 4px 6px; border: 0; border-radius: 999px; background: rgba(255, 255, 255, .1); color: #fff; font: inherit; font-weight: 550; }
+    .cuenta-boton:hover, .cuenta-boton[aria-current="page"] { background: rgba(255, 255, 255, .2); }
+    .iniciales { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--pino); color: #fff; font-size: .82rem; font-weight: 700; }
+    #salir { background: transparent; border: 1px solid var(--sobre-tinta-tenue); color: #fff; border-radius: var(--radio-boton); padding: 6px 12px; font: inherit; }
+    @media (max-width: 640px) {
+      .barra { gap: 8px; padding: 0 12px; }
+      .nav-principal button { padding: 6px 8px; font-size: .88rem; }
+      .cuenta-boton .texto { display: none; }
+    }
     .contenido { max-width: 960px; margin: 0 auto; padding: 16px 16px 48px; display: grid; gap: 14px; }
     .cabecera-dia { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
     .fecha-actual { font-size: clamp(1.3rem, 3vw, 1.8rem); font-weight: 700; color: var(--tinta); }
@@ -46,9 +58,6 @@
     .detalle { color: var(--tinta-suave); font-size: .9rem; }
     .inactivo { color: var(--tinta-suave); text-decoration: line-through; }
     .selector { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .menu { display: flex; gap: 6px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio-tarjeta); padding: 6px; }
-    .menu button { flex: 1; min-height: 40px; border: 0; border-radius: 10px; background: transparent; color: var(--tinta-suave); font: inherit; font-weight: 600; }
-    .menu button[aria-current="page"] { background: var(--pino-claro); color: var(--pino-oscuro); }
     .fila label { display: grid; gap: 4px; flex: 1 1 200px; font-size: .9rem; color: var(--tinta-suave); }
     .fila label input { flex: none; width: 100%; }
     .modal { border: 0; border-radius: var(--radio-tarjeta); padding: 20px; width: min(420px, calc(100vw - 32px)); background: var(--papel); color: var(--tinta); box-shadow: 0 12px 40px rgba(0, 0, 0, .25); }
@@ -63,15 +72,18 @@
     .datos { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0 0 12px; }
     .datos dt { color: var(--tinta-suave); }
     .datos dd { margin: 0; color: var(--tinta); }
-    .cuenta-boton { background: transparent; border: 1px solid var(--sobre-tinta-tenue); color: #fff; border-radius: var(--radio-boton); padding: 6px 12px; }
     .selector select { min-height: 42px; padding: 0 12px; border: 1.5px solid var(--linea-fuerte); border-radius: var(--radio-campo); background: var(--papel); }
   </style>
 </head>
 <body>
   <header class="barra">
-    <span>miEspacia</span>
-    <span class="usuario" id="usuario"></span>
-    
+    <span class="marca">miEspacia</span>
+    <nav class="nav-principal" aria-label="Secciones">
+      <button data-vista="agenda" aria-current="page">Agenda</button>
+      <button data-vista="clientes">Clientes</button>
+      <button data-vista="profesionales" id="menu-profesionales" hidden>Profesionales</button>
+    </nav>
+    <button class="cuenta-boton" id="boton-perfil" data-vista="perfil" hidden><span class="iniciales" id="iniciales"></span><span class="texto">Mi perfil</span></button>
     <button id="salir" hidden>Salir</button>
   </header>
 
@@ -98,12 +110,6 @@
     </section>
 
     <div id="app" hidden>
-      <nav class="menu" aria-label="Secciones">
-        <button data-vista="agenda" aria-current="page">Agenda</button>
-        <button data-vista="clientes">Clientes</button>
-        <button data-vista="perfil">Mi perfil</button>
-        <button data-vista="profesionales" id="menu-profesionales" hidden>Profesionales</button>
-      </nav>
 
       <section class="panel" id="selector-agenda" hidden>
         <div class="selector">
@@ -238,6 +244,7 @@
     $('panel-clave').hidden = pantalla !== 'clave';
     $('app').hidden = pantalla !== 'app';
     $('salir').hidden = pantalla === 'ingreso';
+    $('boton-perfil').hidden = pantalla !== 'app';
   }
 
   async function arrancar() {
@@ -252,7 +259,7 @@
       mostrarError(error.message);
       return;
     }
-    $('usuario').textContent = yo.nombre + (yo.rol === 'admin' ? ' · administrador' : '');
+    $('iniciales').textContent = yo.nombre.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
     if (yo.requiereCambioClave) { mostrar('clave'); return; }
 
     mostrar('app');
@@ -266,7 +273,7 @@
   /** Muestra una sola sección del menú y carga sus datos. */
   function mostrarVista(nombre) {
     document.querySelectorAll('.vista').forEach((el) => { el.hidden = el.dataset.vista !== nombre; });
-    document.querySelectorAll('.menu button').forEach((b) => b.setAttribute('aria-current', b.dataset.vista === nombre ? 'page' : 'false'));
+    document.querySelectorAll('.barra [data-vista]').forEach((b) => b.setAttribute('aria-current', b.dataset.vista === nombre ? 'page' : 'false'));
     mostrarError();
     const cargar = nombre === 'clientes' ? cargarClientes
       : nombre === 'profesionales' ? cargarProfesionales
@@ -275,7 +282,7 @@
     cargar().catch((err) => mostrarError(err.message));
   }
 
-  $('menu-profesionales').parentElement.addEventListener('click', (e) => {
+  document.querySelector('.barra').addEventListener('click', (e) => {
     const boton = e.target.closest('[data-vista]');
     if (boton) mostrarVista(boton.dataset.vista);
   });
