@@ -20,7 +20,7 @@ test('el servidor local exige sesión, permite entrar y sirve la página', async
     assert.equal(ingreso.status, 200);
     const cookie = ingreso.headers.get('set-cookie').split(';')[0];
     const yo = await fetch(base + '/api/yo', { headers: { Cookie: cookie } });
-    assert.equal((await yo.json()).requiereCambioClave, true);
+    assert.equal((await yo.json()).requiereCambioClave, false);
     assert.equal((await fetch(base + '/')).status, 200);
   } finally {
     s.close();

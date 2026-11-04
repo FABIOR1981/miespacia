@@ -40,7 +40,7 @@ async function inicializar(ctx, env) {
       nombre: 'Administrador',
       rol: 'admin',
       claveHash: await hashearClave(env.ADMIN_CLAVE_INICIAL),
-      requiereCambioClave: true,
+      requiereCambioClave: false,
     });
   }
   if (env.DATOS_DE_PRUEBA === '1') await sembrarDatosDePrueba(ctx.persistencia, ctx.agenda);

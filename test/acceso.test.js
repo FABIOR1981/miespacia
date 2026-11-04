@@ -46,13 +46,17 @@ test('sin sesión no se puede usar la API', async () => {
   assert.equal((await pedir('/api/clientes')).status, 401);
 });
 
-test('el administrador entra con clave inicial y tiene que cambiarla antes de usar la app', async () => {
+test('el administrador entra con su clave inicial sin tener que cambiarla', async () => {
   const r = await ingresar(ADMIN, ENV.ADMIN_CLAVE_INICIAL);
   assert.equal(r.status, 200);
-  assert.equal(r.datos.sesion.requiereCambioClave, true);
-  assert.equal((await pedir('/api/clientes', r.cookie)).status, 403);
-  assert.equal((await pedir('/api/clave', r.cookie, 'POST', { actual: ENV.ADMIN_CLAVE_INICIAL, nueva: ADMIN_CLAVE })).status, 200);
+  assert.equal(r.datos.sesion.requiereCambioClave, false);
   assert.equal((await pedir('/api/clientes', r.cookie)).status, 200);
+});
+
+test('el administrador puede cambiar su clave cuando quiera', async () => {
+  const r = await ingresar(ADMIN, ENV.ADMIN_CLAVE_INICIAL);
+  assert.equal((await pedir('/api/clave', r.cookie, 'POST', { actual: ENV.ADMIN_CLAVE_INICIAL, nueva: ADMIN_CLAVE })).status, 200);
+  assert.equal((await ingresar(ADMIN, ADMIN_CLAVE)).status, 200);
 });
 
 test('clave incorrecta no entra, y un email que no existe da el mismo error', async () => {
