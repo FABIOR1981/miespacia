@@ -1,0 +1,14 @@
+{
+  "name": "miespacia",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agenda personal de un profesional: clientes y turnos, sin módulo de cobros",
+  "main": "src/servidor.js",
+  "scripts": {
+    "start": "node src/servidor.js",
+    "test": "node --test test/logica.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

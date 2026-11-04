@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>miEspacia</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+    h1 { font-size: 1.6rem; }
+    section { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; }
+    form { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .75rem; }
+    input, select, button { padding: .45rem .6rem; font: inherit; }
+    button { cursor: pointer; }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li { padding: .4rem 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; gap: .5rem; }
+    .cancelado { color: #999; text-decoration: line-through; }
+    .error { color: #b00020; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+  <h1>miEspacia</h1>
+  <p class="error" id="error"></p>
+
+  <section>
+    <h2>Clientes</h2>
+    <form id="form-cliente">
+      <input name="nombre" placeholder="Nombre" required>
+      <input name="telefono" placeholder="Teléfono">
+      <input name="notas" placeholder="Notas">
+      <button>Agregar</button>
+    </form>
+    <ul id="lista-clientes"></ul>
+  </section>
+
+  <section>
+    <h2>Agendar turno</h2>
+    <form id="form-turno">
+      <select name="clienteId" id="select-cliente" required></select>
+      <input type="date" name="fecha" required>
+      <input type="time" name="hora" required>
+      <button>Agendar</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>Próximos turnos (30 días)</h2>
+    <ul id="lista-turnos"></ul>
+  </section>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const mostrarError = (msg) => { $('error').textContent = msg || ''; };
+
+  async function api(metodo, ruta, cuerpo) {
+    const r = await fetch(ruta, {
+      method: metodo,
+      headers: { 'Content-Type': 'application/json' },
+      body: cuerpo ? JSON.stringify(cuerpo) : undefined,
+    });
+    const datos = await r.json();
+    if (!r.ok) throw new Error(datos.error || 'Error');
+    return datos;
+  }
+
+  function hoy() { return new Date().toISOString().slice(0, 10); }
+  function enDias(n) { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
+
+  async function cargarClientes() {
+    const clientes = await api('GET', '/api/clientes');
+    $('lista-clientes').innerHTML = clientes.map((c) => `<li><span>${escapar(c.nombre)} ${escapar(c.telefono || '')}</span></li>`).join('') || '<li>Sin clientes</li>';
+    $('select-cliente').innerHTML = clientes.map((c) => `<option value="${c.id}">${escapar(c.nombre)}</option>`).join('');
+  }
+
+  async function cargarTurnos() {
+    const turnos = await api('GET', `/api/turnos?desde=${hoy()}&hasta=${enDias(30)}`);
+    $('lista-turnos').innerHTML = turnos.map((t) => `
+      <li class="${t.cancelado ? 'cancelado' : ''}">
+        <span>${t.fecha} ${t.hora} · ${escapar(t.clienteNombre || '')}</span>
+        ${t.cancelado ? '<em>cancelado</em>' : `<button data-cancelar="${t.id}">Cancelar</button>`}
+      </li>`).join('') || '<li>Sin turnos</li>';
+  }
+
+  function escapar(texto) {
+    return String(texto).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  $('form-cliente').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    mostrarError();
+    try {
+      await api('POST', '/api/clientes', Object.fromEntries(new FormData(e.target)));
+      e.target.reset();
+      await cargarClientes();
+    } catch (err) { mostrarError(err.message); }
+  });
+
+  $('form-turno').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    mostrarError();
+    const datos = Object.fromEntries(new FormData(e.target));
+    datos.clienteId = Number(datos.clienteId);
+    try {
+      await api('POST', '/api/turnos', datos);
+      await cargarTurnos();
+    } catch (err) { mostrarError(err.message); }
+  });
+
+  $('lista-turnos').addEventListener('click', async (e) => {
+    const id = e.target.dataset.cancelar;
+    if (!id) return;
+    mostrarError();
+    try {
+      await api('POST', `/api/turnos/${id}/cancelar`);
+      await cargarTurnos();
+    } catch (err) { mostrarError(err.message); }
+  });
+
+  cargarClientes().then(cargarTurnos).catch((err) => mostrarError(err.message));
+</script>
+</body>
+</html>
