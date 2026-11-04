@@ -162,7 +162,7 @@ async function rutaProfesionales(ctx, request, partes, actor) {
   return json(404, { error: 'Ruta no encontrada' });
 }
 
-async function rutaAgenda(ctx, request, url, partes, profesionalId) {
+async function rutaAgenda(ctx, request, url, partes, profesionalId, actor) {
   const metodo = request.method;
   const recurso = partes[1];
 
@@ -191,6 +191,13 @@ async function rutaAgenda(ctx, request, url, partes, profesionalId) {
   }
   if (recurso === 'turnos' && partes.length === 4 && partes[3] === 'cancelar' && metodo === 'POST') {
     return json(200, await ctx.agenda.cancelarTurno(profesionalId, partes[2]));
+  }
+  if (recurso === 'turnos' && partes.length === 4 && partes[3] === 'comentarios' && metodo === 'POST') {
+    const datos = await leerBody(request);
+    return json(201, await ctx.agenda.agregarComentario(profesionalId, partes[2], { texto: datos.texto, autor: actor.nombre }));
+  }
+  if (recurso === 'turnos' && partes.length === 6 && partes[3] === 'comentarios' && partes[5] === 'quitar' && metodo === 'POST') {
+    return json(200, await ctx.agenda.quitarComentario(profesionalId, partes[2], partes[4]));
   }
   return json(404, { error: 'Ruta no encontrada' });
 }
@@ -233,7 +240,7 @@ export async function manejarApi(request, env = {}) {
 
     const pedido = url.searchParams.get('profesional');
     const profesionalId = agendaObjetivo(actor, pedido === null ? null : Number(pedido));
-    return await rutaAgenda(ctx, request, url, partes, profesionalId);
+    return await rutaAgenda(ctx, request, url, partes, profesionalId, actor);
   } catch (error) {
     if (error.estado) return json(error.estado, { error: error.message });
     console.error(error);

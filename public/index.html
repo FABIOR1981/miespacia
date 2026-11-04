@@ -78,6 +78,11 @@
     .fila label { display: grid; gap: 4px; flex: 1 1 200px; font-size: .9rem; color: var(--tinta-suave); }
     .fila label input { flex: none; width: 100%; }
     .reserva-texto { display: grid; gap: 2px; min-width: 0; }
+    .reserva-acciones { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .lista li.comentario { display: grid; gap: 4px; }
+    .lista li.comentario small { color: var(--tinta-suave); }
+    .lista li.comentario button { justify-self: start; }
+    textarea { width: 100%; min-height: 80px; padding: 10px 14px; background: var(--papel); border: 1.5px solid var(--linea-fuerte); border-radius: var(--radio-campo); font: inherit; resize: vertical; }
     .reserva-hora { font-size: .88rem; color: var(--tinta-suave); font-variant-numeric: tabular-nums; }
     .datos { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0 0 12px; }
     .datos dt { color: var(--tinta-suave); }
@@ -168,6 +173,31 @@
       </dialog>
 
       </div>
+
+      <dialog class="hoja" id="modal-comentarios" aria-labelledby="titulo-comentarios">
+        <header class="hoja-cabecera">
+          <h2 id="titulo-comentarios">Comentarios internos</h2>
+          <button class="boton-icono" type="button" id="cerrar-comentarios" aria-label="Cerrar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </header>
+        <div class="hoja-cuerpo">
+          <p id="resumen-comentarios"></p>
+          <ul class="lista" id="lista-comentarios"></ul>
+          <button class="boton boton-secundario" type="button" id="ver-todos-comentarios" hidden></button>
+          <p class="aviso" id="error-comentarios" hidden></p>
+          <form id="form-comentario" novalidate>
+            <div class="campo">
+              <label for="texto-comentario">Nuevo comentario</label>
+              <textarea id="texto-comentario" maxlength="500" rows="3" placeholder="Ej.: no cambiar, problema de movilidad"></textarea>
+            </div>
+            <div class="hoja-acciones">
+              <button class="boton boton-primario" type="submit">Agregar comentario</button>
+              <button class="boton boton-secundario" type="button" id="volver-comentarios">Volver</button>
+            </div>
+          </form>
+        </div>
+      </dialog>
 
       <section class="panel vista" data-vista="clientes">
         <h2>Clientes</h2>
@@ -460,7 +490,7 @@
 
   // La línea de la hora actual se mueve sola mientras se mira hoy.
   setInterval(() => {
-    if (!$('app').hidden && diaSeleccionado === fechaDesplazada(0) && !$('modal-reserva').open) {
+    if (!$('app').hidden && diaSeleccionado === fechaDesplazada(0) && !$('modal-reserva').open && !$('modal-comentarios').open) {
       dibujarGrilla().catch(() => {});
     }
   }, 60000);
@@ -551,6 +581,7 @@
 
   async function dibujarGrilla() {
     const turnos = await api('GET', agendaUrl('/api/turnos', { desde: diaSeleccionado, hasta: diaSeleccionado }));
+    turnosActuales = turnos;
     const activos = turnos.filter((t) => !t.cancelado);
     const cancelados = turnos.filter((t) => t.cancelado);
     const horas = horasParaMostrar(activos);
@@ -597,7 +628,10 @@
         const primero = j === inicio;
         const contenido = primero
           ? `<div class="reserva-texto"><strong>${escapar(t.clienteNombre || '')}</strong><span class="reserva-hora">${t.hora} – ${aHora(aMinutos(t.hora) + t.duracion)}</span></div>
-             <button class="boton boton-secundario" data-cancelar="${t.id}">Cancelar</button>`
+             <div class="reserva-acciones">
+               <button class="boton boton-secundario" data-comentarios="${t.id}">Comentarios${(t.comentarios || []).length ? ` (${t.comentarios.length})` : ''}</button>
+               <button class="boton boton-secundario" data-cancelar="${t.id}">Cancelar</button>
+             </div>`
           : '';
         columnas[c].push(`<div class="reserva-bloque ${primero ? '' : 'continua'}" style="grid-row:${filaDe(j)} / span ${k - j}">${contenido}</div>`);
         j = k;
@@ -632,6 +666,90 @@
     dibujarTira();
     await dibujarGrilla();
   }
+
+  // Comentarios internos de una reserva
+  let turnosActuales = [];
+  let comentandoId = null;
+  let verTodosComentarios = false;
+  const COMENTARIOS_RECIENTES = 3;
+
+  function fechaComentario(en) {
+    try {
+      return new Date(en).toLocaleString('es-UY', { timeZone: 'America/Montevideo', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch { return ''; }
+  }
+
+  function errorComentarios(msg) {
+    $('error-comentarios').textContent = msg || '';
+    $('error-comentarios').hidden = !msg;
+  }
+
+  function renderComentarios() {
+    const t = turnosActuales.find((x) => String(x.id) === String(comentandoId));
+    if (!t) {
+      $('modal-comentarios').close();
+      mostrarError('Ese turno ya no está en la agenda. La actualicé.');
+      dibujarGrilla().catch(() => {});
+      return;
+    }
+    const lista = t.comentarios || [];
+    const mostrar = verTodosComentarios ? lista : lista.slice(-COMENTARIOS_RECIENTES);
+    $('resumen-comentarios').textContent = `${t.clienteNombre || ''} · ${t.hora} – ${aHora(aMinutos(t.hora) + t.duracion)}`;
+    $('lista-comentarios').innerHTML = mostrar.map((c) =>
+      `<li class="comentario">
+         <span>${escapar(c.texto)}</span>
+         <small>${escapar(c.por || '')} · ${fechaComentario(c.en)}</small>
+         <button class="boton boton-secundario" type="button" data-quitar-comentario="${c.id}">Quitar</button>
+       </li>`).join('') || '<li><small>Sin comentarios todavía.</small></li>';
+    const verTodos = $('ver-todos-comentarios');
+    verTodos.hidden = lista.length <= COMENTARIOS_RECIENTES;
+    verTodos.textContent = verTodosComentarios ? 'Ver solo los últimos' : `Ver todos (${lista.length})`;
+  }
+
+  function abrirComentarios(id) {
+    comentandoId = id;
+    verTodosComentarios = false;
+    $('texto-comentario').value = '';
+    errorComentarios();
+    renderComentarios();
+    if ($('modal-comentarios').open) return;
+    $('modal-comentarios').showModal();
+  }
+
+  $('grilla').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-comentarios]');
+    if (b) abrirComentarios(b.dataset.comentarios);
+  });
+
+  $('ver-todos-comentarios').addEventListener('click', () => {
+    verTodosComentarios = !verTodosComentarios;
+    renderComentarios();
+  });
+
+  $('lista-comentarios').addEventListener('click', async (e) => {
+    const q = e.target.closest('[data-quitar-comentario]');
+    if (!q) return;
+    errorComentarios();
+    try {
+      await api('POST', agendaUrl(`/api/turnos/${comentandoId}/comentarios/${q.dataset.quitarComentario}/quitar`));
+      await dibujarGrilla();
+      renderComentarios();
+    } catch (err) { errorComentarios(err.message); }
+  });
+
+  $('form-comentario').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorComentarios();
+    try {
+      await api('POST', agendaUrl(`/api/turnos/${comentandoId}/comentarios`), { texto: $('texto-comentario').value });
+      $('texto-comentario').value = '';
+      await dibujarGrilla();
+      renderComentarios();
+    } catch (err) { errorComentarios(err.message); }
+  });
+
+  $('cerrar-comentarios').addEventListener('click', () => $('modal-comentarios').close());
+  $('volver-comentarios').addEventListener('click', () => $('modal-comentarios').close());
 
   function abrirReserva(hora) {
     horaElegida = hora;
