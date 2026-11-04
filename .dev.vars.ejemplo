@@ -1,0 +1,6 @@
+# Copiar a .dev.vars (NO subir a git) y completar los valores.
+# Generar SESION_SECRETO con: openssl rand -base64 32
+SESION_SECRETO=pegar-aca-el-resultado-de-openssl
+ADMIN_CLAVE_INICIAL=una-clave-temporal-para-tu-primer-ingreso
+# Opcional, solo para probar con Ana y Luis:
+DATOS_DE_PRUEBA=1
