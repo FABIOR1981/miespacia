@@ -104,3 +104,23 @@ test('la duración rige desde la fecha del cambio; los turnos anteriores no camb
   await assert.rejects(a.cambiarDuracion(cuenta.id, 45, '2026-11-10'), /30 a 240/);
   await assert.rejects(a.cambiarDuracion(cuenta.id, 30, '2001-01-01'), /fecha pasada/);
 });
+
+test('los comentarios se agregan y quitan de una reserva, con un máximo de 500 caracteres', async () => {
+  const agenda = nueva();
+  const c = await agenda.crearCliente('pro-com', { nombre: 'Ana' });
+  const turno = await agenda.agendarTurno('pro-com', { clienteId: c.id, fecha: '2026-11-05', hora: '10:00' });
+
+  const lista = await agenda.agregarComentario('pro-com', turno.id, { texto: '  No cambiar  ', autor: 'Fabio' });
+  assert.equal(lista.length, 1);
+  assert.equal(lista[0].texto, 'No cambiar');
+  assert.equal(lista[0].por, 'Fabio');
+
+  await assert.rejects(agenda.agregarComentario('pro-com', turno.id, { texto: 'x'.repeat(501), autor: 'Fabio' }), /500/);
+  await assert.rejects(agenda.agregarComentario('pro-com', turno.id, { texto: '   ', autor: 'Fabio' }), /obligatorio/);
+  await assert.rejects(agenda.agregarComentario('pro-otro', turno.id, { texto: 'hola', autor: 'X' }), (e) => e.estado === 404);
+
+  const quitado = await agenda.quitarComentario('pro-com', turno.id, lista[0].id);
+  assert.equal(quitado.length, 0);
+  const [t] = await agenda.listarTurnos('pro-com', '2026-11-05', '2026-11-05');
+  assert.equal(t.comentarios.length, 0);
+});

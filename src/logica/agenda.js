@@ -181,6 +181,28 @@ function crearAgenda(persistencia) {
       });
     },
 
+    /** Comentario interno de una reserva. `autor` es quien lo escribe. */
+    async agregarComentario(profesionalId, id, { texto, autor }) {
+      const turno = await turnos.obtener(profesionalId, Number(id));
+      if (!turno) throw new ErrorDeNegocio('El turno no existe', 404);
+      const limpio = textoObligatorio(texto, 'El comentario');
+      if (limpio.length > 500) throw new ErrorDeNegocio('El comentario tiene como máximo 500 caracteres');
+      const comentarios = [...(turno.comentarios ?? []), {
+        id: Date.now() + Math.random(), texto: limpio, por: String(autor ?? '').trim() || 'Sin nombre', en: new Date().toISOString(),
+      }];
+      await turnos.actualizar(profesionalId, Number(id), { comentarios });
+      return comentarios;
+    },
+
+    async quitarComentario(profesionalId, id, comentarioId) {
+      const turno = await turnos.obtener(profesionalId, Number(id));
+      if (!turno) throw new ErrorDeNegocio('El turno no existe', 404);
+      const comentarios = (turno.comentarios ?? []).filter((c) => String(c.id) !== String(comentarioId));
+      if (comentarios.length === (turno.comentarios ?? []).length) throw new ErrorDeNegocio('El comentario no existe', 404);
+      await turnos.actualizar(profesionalId, Number(id), { comentarios });
+      return comentarios;
+    },
+
     async cancelarTurno(profesionalId, id) {
       const cancelado = await turnos.cancelar(profesionalId, Number(id));
       if (!cancelado) throw new ErrorDeNegocio('El turno no existe', 404);

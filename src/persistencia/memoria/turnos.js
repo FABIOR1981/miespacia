@@ -24,6 +24,13 @@ function crearTurnosEnMemoria() {
       return t ? copia(t) : null;
     },
 
+    actualizar: async (profesionalId, id, cambios) => {
+      const t = registros.find((x) => x.id === id && x.profesionalId === profesionalId);
+      if (!t) return null;
+      Object.assign(t, copia(cambios));
+      return copia(t);
+    },
+
     crear: async (profesionalId, datos) => {
       const nuevo = { ...copia(datos), id: secuencia++, profesionalId, cancelado: false };
       registros.push(nuevo);
