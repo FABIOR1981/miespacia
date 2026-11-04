@@ -77,6 +77,11 @@
     .panel { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio-tarjeta); padding: 16px; display: grid; gap: 10px; }
     @media (max-width: 760px) { .motivo-lugar { display: none; } }
     #form-ingreso { display: grid; gap: 14px; }
+    .busqueda-clientes { display: grid; gap: 6px; }
+    .lista-clientes li { align-items: center; }
+    .cliente-datos { display: grid; gap: 2px; min-width: 0; }
+    .cliente-datos small { overflow-wrap: anywhere; }
+    .etiqueta-baja { font-size: .75rem; padding: 1px 8px; border-radius: 999px; background: var(--peligro-claro, #eee); color: var(--error-texto, #7a1f26); }
     #form-ingreso label { display: grid; gap: 6px; }
     .panel h2 { margin: 0; font-size: 1.05rem; color: var(--tinta); }
     .fila { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -358,7 +363,11 @@
           <input name="notas" placeholder="Notas">
           <button class="boton boton-primario">Agregar</button>
         </form>
-        <ul class="lista" id="lista-clientes"></ul>
+        <div class="busqueda-clientes">
+          <input type="search" id="buscar-cliente" placeholder="Buscar por nombre, teléfono o notas" aria-label="Buscar" autocomplete="off">
+          <p class="detalle" id="contador-clientes" aria-live="polite"></p>
+        </div>
+        <ul class="lista lista-clientes" id="lista-clientes"></ul>
         <dialog class="hoja" id="modal-cliente" aria-labelledby="titulo-cliente">
           <header class="hoja-cabecera">
             <h2 id="titulo-cliente" data-plantilla="Editar {s}">Editar cliente</h2>
@@ -1039,15 +1048,41 @@
   let clientesLista = [];
   let editandoClienteId = null;
 
+  // Sin acentos y en minúsculas, para que «ríos» encuentre «Ríos» y «rios».
+  const sinAcentos = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+  function pintarClientes() {
+    const termino = sinAcentos($('buscar-cliente').value.trim());
+    const todos = [...clientesLista].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    const lista = termino
+      ? todos.filter((c) => [c.nombre, c.telefono, c.notas].some((v) => sinAcentos(v).includes(termino)))
+      : todos;
+    const plural = ETIQUETAS[etiqueta].p;
+    $('contador-clientes').textContent = todos.length
+      ? (termino ? `${lista.length} de ${todos.length}` : `${todos.length} en total`)
+      : '';
+    $('lista-clientes').innerHTML = lista.map((c) => {
+      const baja = c.activo === false;
+      const datos = [c.telefono, c.notas].filter(Boolean).map(escapar).join(' · ');
+      return `<li class="${baja ? 'inactivo' : ''}">
+          <span class="cliente-datos">
+            <strong>${escapar(c.nombre)}</strong>${baja ? ' <span class="etiqueta-baja">Dado de baja</span>' : ''}
+            ${datos ? `<small class="detalle">${datos}</small>` : ''}
+          </span>
+          <button class="boton boton-secundario" data-editar-cliente="${c.id}">Editar</button>
+        </li>`;
+    }).join('')
+      || (todos.length
+        ? `<li class="detalle">No hay ${plural} que coincidan con «${escapar($('buscar-cliente').value.trim())}».</li>`
+        : `<li class="detalle">Todavía no hay ${plural}. Agregá uno arriba.</li>`);
+  }
+
+  $('buscar-cliente').addEventListener('input', pintarClientes);
+
   async function cargarClientes() {
     const clientes = await api('GET', agendaUrl('/api/clientes'));
     clientesLista = clientes;
-    $('lista-clientes').innerHTML = clientes.map((c) => {
-      const baja = c.activo === false;
-      return `<li class="${baja ? 'inactivo' : ''}"><span>${escapar(c.nombre)} <span class="detalle">${escapar(c.telefono || '')}${baja ? ' · dado de baja' : ''}</span></span>
-        <button class="boton boton-secundario" data-editar-cliente="${c.id}">Editar</button></li>`;
-    }).join('')
-      || `<li class="detalle">Todavía no hay ${ETIQUETAS[etiqueta].p}</li>`;
+    pintarClientes();
     // Los combos solo muestran los activos: los dados de baja no se pueden elegir para reservar.
     $('select-cliente').innerHTML = clientes.filter((c) => c.activo !== false).map((c) => `<option value="${c.id}">${escapar(c.nombre)}</option>`).join('');
   }
